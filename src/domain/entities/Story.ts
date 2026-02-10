@@ -47,6 +47,23 @@ export interface Story {
      * Hikayeyi oluşturan kullanıcının ID'si
      */
     userId: string;
+
+    /**
+     * Hikaye teması
+     * Örnek: 'Macera', 'Bilim Kurgu', 'Fantastik'
+     */
+    theme?: string;
+
+    /**
+     * Hikaye uzunluğu
+     * Örnek: 'Kısa', 'Orta', 'Uzun'
+     */
+    length?: string;
+
+    /**
+     * Hikaye sayfaları (StoryPage array)
+     */
+    pages?: any[]; // TODO: StoryPage[] olacak
 }
 
 /**
