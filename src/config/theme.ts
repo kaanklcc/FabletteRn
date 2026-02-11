@@ -49,6 +49,14 @@ export const colors = {
     // Gradient Colors (GradientBackground için)
     gradientStart: '#1E3A8A',     // Koyu mavi
     gradientEnd: '#3B82F6',       // Açık mavi
+
+    // HomeScreen specific
+    homeGradient: ['#003366', '#004080', '#0055AA'],
+    premium: '#FBBF24',
+    premiumText: '#003366',
+    textLightAlpha: 'rgba(255, 255, 255, 0.8)',
+    whiteAlpha15: 'rgba(255, 255, 255, 0.15)',
+    whiteAlpha95: 'rgba(255, 255, 255, 0.95)',
 };
 
 /**

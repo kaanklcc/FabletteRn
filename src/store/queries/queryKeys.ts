@@ -1,74 +1,137 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- * QUERY KEYS (TanStack Query Cache Keys)
+ * QUERY KEYS - TanStack Query Cache Keys
  * ═══════════════════════════════════════════════════════════════
  * 
  * 🎯 NE İŞE YARAR?
  * 
- * TanStack Query'de caching için kullanılan key'ler.
- * Her query'nin unique bir key'i olmalı.
+ * TanStack Query'de cache key'leri merkezi bir yerde tanımlar.
  * 
- * Best Practice: Query key'leri merkezi bir yerde tanımla.
+ * Hierarchical (hiyerarşik) yapı kullanılır:
+ * - ['stories'] → Tüm hikaye query'leri
+ * - ['stories', 'list'] → Hikaye listesi
+ * - ['stories', 'detail', '123'] → ID=123 hikayesi
  * 
  * ═══════════════════════════════════════════════════════════════
  * KOTLIN KARŞILAŞTIRMASI
  * ═══════════════════════════════════════════════════════════════
  * 
- * Kotlin'de böyle bir şey yok çünkü manuel caching yapıyoruz.
- * TanStack Query otomatik caching yapıyor!
+ * Kotlin'de cache key yok, direkt ViewModel'de veri tutulur.
+ * 
+ * TanStack Query'de:
+ * - Her query'nin bir key'i var
+ * - Aynı key → Cache'den veri gelir
+ * - Farklı key → API çağrısı yapılır
+ * 
+ * ═══════════════════════════════════════════════════════════════
+ * NEDEN HIERARCHICAL?
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * Kolay invalidation için!
+ * 
+ * Örnek:
+ * - Yeni hikaye oluşturuldu
+ * - Tüm hikaye query'lerini invalidate et
+ * - queryClient.invalidateQueries({ queryKey: storyKeys.all })
+ * - Bu, ['stories'] ile başlayan TÜM query'leri invalidate eder
  */
 
 /**
  * Story Query Keys
  * 
- * Hierarchical key structure (best practice):
- * 
- * ['stories'] → Tüm hikayeler
- * ['stories', 'list'] → Hikaye listesi
- * ['stories', 'list', { userId }] → Kullanıcıya göre filtrelenmiş liste
- * ['stories', 'detail', id] → Tek hikaye detayı
+ * Hikaye ile ilgili tüm cache key'leri
  */
 export const storyKeys = {
     /**
-     * Base key - Tüm hikaye query'leri
+     * Tüm hikaye query'leri
+     * 
+     * ['stories']
      */
     all: ['stories'] as const,
 
     /**
-     * Liste query'leri
+     * Hikaye listeleri
+     * 
+     * ['stories', 'list']
      */
     lists: () => [...storyKeys.all, 'list'] as const,
 
     /**
-     * Filtrelenmiş liste
+     * Filtrelenmiş hikaye listesi
      * 
-     * Kullanım:
-     * queryKey: storyKeys.list({ userId: 'user-123' })
+     * ['stories', 'list', { userId: '123' }]
      */
-    list: (filters: { userId?: string }) => [...storyKeys.lists(), filters] as const,
+    list: (filters: { userId?: string; theme?: string }) =>
+        [...storyKeys.lists(), filters] as const,
 
     /**
-     * Detay query'leri
+     * Hikaye detayları
+     * 
+     * ['stories', 'detail']
      */
     details: () => [...storyKeys.all, 'detail'] as const,
 
     /**
-     * Tek hikaye detayı
+     * Tek bir hikaye
      * 
-     * Kullanım:
-     * queryKey: storyKeys.detail('story-123')
+     * ['stories', 'detail', '123']
      */
     detail: (id: string) => [...storyKeys.details(), id] as const,
 };
 
 /**
+ * Auth Query Keys
+ * 
+ * Authentication ile ilgili cache key'leri
+ */
+export const authKeys = {
+    /**
+     * Tüm auth query'leri
+     * 
+     * ['auth']
+     */
+    all: ['auth'] as const,
+
+    /**
+     * Mevcut kullanıcı
+     * 
+     * ['auth', 'currentUser']
+     */
+    currentUser: () => [...authKeys.all, 'currentUser'] as const,
+};
+
+/**
  * User Query Keys
  * 
- * Kullanıcı verileri için query key'leri.
+ * Kullanıcı verisi ile ilgili cache key'leri
  */
 export const userKeys = {
+    /**
+     * Tüm user query'leri
+     * 
+     * ['users']
+     */
     all: ['users'] as const,
-    detail: (id: string) => [...userKeys.all, 'detail', id] as const,
+
+    /**
+     * Kullanıcı detayları
+     * 
+     * ['users', 'detail']
+     */
+    details: () => [...userKeys.all, 'detail'] as const,
+
+    /**
+     * Tek bir kullanıcı
+     * 
+     * ['users', 'detail', '123']
+     */
+    detail: (id: string) => [...userKeys.details(), id] as const,
+
+    /**
+     * Kullanıcı Firestore verisi
+     * 
+     * ['users', 'data', '123']
+     */
     data: (id: string) => [...userKeys.all, 'data', id] as const,
 };
 
@@ -77,22 +140,25 @@ export const userKeys = {
  * KULLANIM ÖRNEKLERİ
  * ═══════════════════════════════════════════════════════════════
  * 
- * 1. Query'de Kullanım:
+ * 1. Query'de kullanım:
  * 
- * const { data } = useQuery({
+ * useQuery({
  *   queryKey: storyKeys.detail('story-123'),
- *   queryFn: () => getStoryById('story-123'),
+ *   queryFn: () => getStory('story-123'),
  * });
  * 
- * 2. Cache Invalidation:
+ * 2. Invalidation:
  * 
- * const queryClient = useQueryClient();
+ * // Tüm hikaye query'lerini invalidate et
  * queryClient.invalidateQueries({ queryKey: storyKeys.all });
  * 
- * 3. Prefetch:
+ * // Sadece liste query'lerini invalidate et
+ * queryClient.invalidateQueries({ queryKey: storyKeys.lists() });
  * 
- * queryClient.prefetchQuery({
- *   queryKey: storyKeys.detail('story-123'),
- *   queryFn: () => getStoryById('story-123'),
- * });
+ * // Sadece ID=123 hikayesini invalidate et
+ * queryClient.invalidateQueries({ queryKey: storyKeys.detail('123') });
+ * 
+ * 3. Manuel cache update:
+ * 
+ * queryClient.setQueryData(storyKeys.detail('123'), newStory);
  */
