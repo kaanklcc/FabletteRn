@@ -33,7 +33,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Screens
 import HomeScreen from '../screens/home/HomeScreen';
-import CreateStoryScreen from '../screens/story/CreateStoryScreen';
+import CreateStoryScreen from '../screens/create/CreateStoryScreen';
 import StoryViewerScreen from '../screens/story/StoryViewerScreen';
 import SavedStoriesScreen from '../screens/saved/SavedStoriesScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
@@ -58,11 +58,14 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
  */
 function HomeTabNavigator() {
     return (
-        <HomeStack.Navigator>
+        <HomeStack.Navigator
+            screenOptions={{ headerShown: false }} // Home tab'ında header yok, diğer ekranlarda olabilir
+        >
             <HomeStack.Screen
                 name="Home"
                 component={HomeScreen}
                 options={{ title: 'Ana Sayfa' }}
+               
             />
         </HomeStack.Navigator>
     );
@@ -77,7 +80,9 @@ function HomeTabNavigator() {
  */
 function CreateTabNavigator() {
     return (
-        <CreateStack.Navigator>
+        <CreateStack.Navigator
+            screenOptions={{ headerShown: false }} // Home tab'ında header yok, diğer ekranlarda olabilir
+        >
             <CreateStack.Screen
                 name="CreateStory"
                 component={CreateStoryScreen}
