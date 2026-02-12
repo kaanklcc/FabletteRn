@@ -55,13 +55,15 @@ export default function HomeScreen({ navigation }: Props) {
     };
 
     const handleCreateStoryPress = () => {
-        // TODO: Navigate to CreateStory screen
-        console.log('Create story pressed');
+        // Navigate to CreateStory tab
+        console.log('Create story pressed - Navigate to CreateTab');
+        // TODO: Switch to CreateTab
     };
 
     const handleStoryPress = (storyId: string) => {
-        // TODO: Navigate to StoryViewer with storyId
+        // Navigate to StoryViewer with storyId
         console.log('Story pressed:', storyId);
+        navigation.navigate('StoryViewer', { storyId: `featured_${storyId}` });
     };
 
     // ─────────────────────────────────────────────────────────
@@ -70,7 +72,7 @@ export default function HomeScreen({ navigation }: Props) {
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <LinearGradient
-                colors={colors.homeGradient as string[]}
+                colors={['#003366', '#004080', '#0055AA']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradient}>
