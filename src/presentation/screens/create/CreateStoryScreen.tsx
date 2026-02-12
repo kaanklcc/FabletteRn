@@ -69,7 +69,7 @@ export default function CreateStoryScreen({ navigation }: Props) {
     const [selectedLength, setSelectedLength] = useState('');
 
     // Accordion states
-    const [themeExpanded, setThemeExpanded] = useState(true);
+    const [themeExpanded, setThemeExpanded] = useState(false);
     const [lengthExpanded, setLengthExpanded] = useState(false);
     const [supportingExpanded, setSupportingExpanded] = useState(false);
 
