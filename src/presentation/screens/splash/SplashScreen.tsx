@@ -24,6 +24,8 @@ import {
 import { useAuthStore } from '@/store/zustand/useAuthStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -35,29 +37,41 @@ interface Props {
 }
 
 export default function SplashScreen({ navigation }: Props) {
-    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const setUser = useAuthStore((state) => state.setUser);
 
     useEffect(() => {
-        /**
-         * 2 saniye bekle, sonra yönlendir
-         * 
-         * Kotlin karşılığı:
-         * LaunchedEffect(Unit) {
-         *   delay(2000)
-         *   navController.navigate(...)
-         * }
-         */
-        const timer = setTimeout(() => {
-            if (isAuthenticated) {
-                navigation.replace('Main');
-            } else {
-                navigation.replace('Auth');
-            }
-        }, 2000);
+        // Firebase auth durumunu dinle
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            setTimeout(() => {
+                if (firebaseUser) {
+                    // Kullanıcı giriş yapmış - auth store'u güncelle
+                    const displayName = firebaseUser.displayName || '';
+                    const [firstName = '', ...lastNameParts] = displayName.split(' ');
+                    const lastName = lastNameParts.join(' ');
 
-        // Cleanup
-        return () => clearTimeout(timer);
-    }, [isAuthenticated, navigation]);
+                    setUser({
+                        uid: firebaseUser.uid,
+                        firstName,
+                        lastName,
+                        email: firebaseUser.email || '',
+                        emailVerified: firebaseUser.emailVerified,
+                        photoURL: firebaseUser.photoURL || undefined,
+                        usedFreeTrial: false,
+                        isPremium: false,
+                        remainingCredits: 0,
+                        premiumStartDate: null,
+                        premiumDurationDays: 0,
+                    });
+                    navigation.replace('Main');
+                } else {
+                    // Kullanıcı giriş yapmamış
+                    navigation.replace('Auth');
+                }
+            }, 2000);
+        });
+
+        return () => unsubscribe();
+    }, [navigation, setUser]);
 
     return (
         <View style={styles.container}>

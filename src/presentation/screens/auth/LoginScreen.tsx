@@ -1,30 +1,39 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- * LOGIN SCREEN - GOOGLE SIGN-IN ONLY
+ * LOGIN SCREEN - EMAIL/PASSWORD + GOOGLE
  * ═══════════════════════════════════════════════════════════════
  * 
- * DiscoveryBox2 GirisSayfa.kt'nin birebir kopyası.
+ * DiscoveryBox2 GirisSayfa.kt'nin React Native versiyonu.
  * 
  * Özellikler:
- * - Sadece Google ile giriş
- * - Email/şifre input YOK
+ * - Email/şifre ile giriş (Expo Go'da çalışır)
+ * - Google ile giriş (Production build'de çalışır)
  * - Gradient background
- * - Dil seçici (TR/EN)
+ * - Loading states
+ * - Error handling
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     StatusBar,
-    Image,
+    ActivityIndicator,
+    TextInput,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '@/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuthStore } from '@/store/zustand/useAuthStore';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
     AuthStackParamList,
@@ -37,27 +46,115 @@ interface Props {
 
 export default function LoginScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
-    // GOOGLE SIGN-IN HANDLER
+    // STATE
     // ─────────────────────────────────────────────────────────
-    const handleGoogleSignIn = async () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const setUser = useAuthStore((state) => state.setUser);
+
+    // ─────────────────────────────────────────────────────────
+    // EMAIL/PASSWORD SIGN-IN
+    // ─────────────────────────────────────────────────────────
+    const handleEmailSignIn = async () => {
+        if (!email.trim() || !password.trim()) {
+            Alert.alert('Hata', 'Email ve şifre giriniz');
+            return;
+        }
+
         try {
-            // TODO: Google Sign-In implementasyonu
-            // @react-native-google-signin/google-signin kullanılacak
-            Alert.alert(
-                'Google Sign-In',
-                'Google Sign-In henüz implement edilmedi. Şimdilik Main ekranına yönlendiriliyorsunuz.',
-                [
-                    {
-                        text: 'Tamam',
-                        onPress: () => {
-                            // Test için direkt Main'e git
-                            navigation.getParent()?.navigate('Main' as never);
-                        },
-                    },
-                ]
-            );
-        } catch (error) {
-            Alert.alert('Hata', 'Google ile giriş yapılamadı');
+            setLoading(true);
+            const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+            const user = userCredential.user;
+
+            // Firestore'da kullanıcı belgesi kontrol et, yoksa oluştur
+            const userRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (!userDoc.exists()) {
+                // Yeni kullanıcı - Firestore'a kaydet (Android uygulamasıyla aynı yapı)
+                const displayName = user.displayName || email.split('@')[0];
+                await setDoc(userRef, {
+                    ad: displayName,
+                    soyad: '',
+                    email: user.email || '',
+                    premium: false,
+                    remainingChatgptUses: 0,
+                    remainingFreeUses: 3,
+                    adsWatchedToday: 0,
+                    lastFreeUseReset: new Date().toISOString().split('T')[0],
+                    premiumStartDate: null,
+                    premiumDurationDays: 0,
+                    usedFreeTrial: false,
+                });
+                console.log('✅ Yeni kullanıcı Firestore\'a kaydedildi');
+            }
+
+            // Auth store'u güncelle
+            const firestoreData = userDoc.exists() ? userDoc.data() : null;
+            const displayName = user.displayName || '';
+            const [firstName = '', ...lastNameParts] = displayName.split(' ');
+            const lastName = lastNameParts.join(' ');
+
+            setUser({
+                uid: user.uid,
+                firstName,
+                lastName,
+                email: user.email || '',
+                emailVerified: user.emailVerified,
+                photoURL: user.photoURL || undefined,
+                usedFreeTrial: false,
+                isPremium: false,
+                remainingCredits: 0,
+                premiumStartDate: null,
+                premiumDurationDays: 0,
+            });
+
+            // Main ekranına git
+            navigation.getParent()?.reset({
+                index: 0,
+                routes: [{ name: 'Main' as never }],
+            });
+        } catch (error: any) {
+            console.error('🔴 Login Error:', error.code, error.message);
+            const errorMessage = getErrorMessage(error.code);
+            Alert.alert('Giriş Başarısız', `${errorMessage}\n\n(Hata kodu: ${error.code})`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────
+    // GOOGLE SIGN-IN (Production build'de çalışır)
+    // ─────────────────────────────────────────────────────────
+    const handleGoogleSignIn = () => {
+        Alert.alert(
+            'Google Sign-In',
+            'Google ile giriş Expo Go\'da çalışmaz. Development build gerektirir.\n\nŞimdilik email/şifre ile giriş yapabilirsiniz.',
+        );
+    };
+
+    // ─────────────────────────────────────────────────────────
+    // ERROR MESSAGES
+    // ─────────────────────────────────────────────────────────
+    const getErrorMessage = (code: string): string => {
+        switch (code) {
+            case 'auth/invalid-email':
+                return 'Geçersiz email adresi';
+            case 'auth/user-disabled':
+                return 'Bu hesap devre dışı bırakılmış';
+            case 'auth/user-not-found':
+                return 'Bu email ile kayıtlı kullanıcı bulunamadı';
+            case 'auth/wrong-password':
+                return 'Hatalı şifre';
+            case 'auth/invalid-credential':
+                return 'Geçersiz email veya şifre';
+            case 'auth/too-many-requests':
+                return 'Çok fazla hatalı deneme. Lütfen biraz bekleyin.';
+            case 'auth/network-request-failed':
+                return 'İnternet bağlantısı yok';
+            default:
+                return 'Bir hata oluştu. Lütfen tekrar deneyin.';
         }
     };
 
@@ -69,68 +166,94 @@ export default function LoginScreen({ navigation }: Props) {
             colors={['#003366', '#004080', '#0055AA']}
             style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#003366" />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardView}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled">
+                    <View style={styles.content}>
+                        {/* Dil Seçici (Sağ Üst) */}
+                        <View style={styles.languageContainer}>
+                            <TouchableOpacity style={styles.languageButton}>
+                                <Text style={styles.languageIcon}>🌍</Text>
+                                <Text style={styles.languageText}>TR</Text>
+                            </TouchableOpacity>
+                        </View>
 
-            <View style={styles.content}>
-                {/* Dil Seçici (Sağ Üst) */}
-                <View style={styles.languageContainer}>
-                    <TouchableOpacity style={styles.languageButton}>
-                        <Text style={styles.languageIcon}>🌍</Text>
-                        <Text style={styles.languageText}>TR</Text>
-                    </TouchableOpacity>
-                </View>
+                        {/* Ana Kart */}
+                        <View style={styles.card}>
+                            {/* Logo */}
+                            <Text style={styles.logo}>📚</Text>
 
-                {/* Ana Kart */}
-                <View style={styles.card}>
-                    {/* Logo */}
-                    <Text style={styles.logo}>📚</Text>
+                            {/* Başlık */}
+                            <Text style={styles.title}>Fabllette</Text>
+                            <Text style={styles.subtitle}>Harika hikayeler yarat</Text>
 
-                    {/* Başlık */}
-                    <Text style={styles.title}>Fabllette</Text>
-                    <Text style={styles.subtitle}>Harika hikayeler yarat</Text>
+                            {/* Email Input */}
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email adresi"
+                                placeholderTextColor="rgba(0, 85, 170, 0.5)"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                editable={!loading}
+                            />
 
-                    {/* Hoş Geldin Mesajı */}
-                    <View style={styles.welcomeBox}>
-                        <Text style={styles.welcomeText}>
-                            Sihirli hikaye dünyasına hoş geldin! 🌟
-                        </Text>
+                            {/* Password Input */}
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Şifre"
+                                placeholderTextColor="rgba(0, 85, 170, 0.5)"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                                autoCapitalize="none"
+                                editable={!loading}
+                            />
+
+                            {/* Email Sign-In Button */}
+                            <TouchableOpacity
+                                style={[styles.signInButton, styles.emailButton]}
+                                onPress={handleEmailSignIn}
+                                disabled={loading}>
+                                {loading ? (
+                                    <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.signInButtonText}>Giriş Yap</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            {/* Divider */}
+                            <View style={styles.divider}>
+                                <View style={styles.dividerLine} />
+                                <Text style={styles.dividerText}>veya</Text>
+                                <View style={styles.dividerLine} />
+                            </View>
+
+                            {/* Google Sign-In Button */}
+                            <TouchableOpacity
+                                style={[styles.signInButton, styles.googleButton]}
+                                onPress={handleGoogleSignIn}
+                                disabled={loading}>
+                                <Text style={styles.googleIcon}>G</Text>
+                                <Text style={styles.signInButtonText}>Google ile Giriş Yap</Text>
+                            </TouchableOpacity>
+
+
+                            {/* Alt Mesaj */}
+                            <View style={styles.footer}>
+                                <Text style={styles.footerEmoji}>🌟</Text>
+                                <Text style={styles.footerText}>Hayal gücün uçsun</Text>
+                                <Text style={styles.footerEmoji}>🌟</Text>
+                            </View>
+                        </View>
                     </View>
-
-                    {/* Google Sign-Up Button (Pembe) */}
-                    <TouchableOpacity
-                        style={[styles.googleButton, styles.googleButtonPink]}
-                        onPress={handleGoogleSignIn}>
-                        <Text style={styles.googleIcon}>G</Text>
-                        <Text style={styles.googleButtonText}>Google ile Kayıt Ol</Text>
-                    </TouchableOpacity>
-
-                    {/* Divider */}
-                    <View style={styles.divider}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>veya</Text>
-                        <View style={styles.dividerLine} />
-                    </View>
-
-                    {/* Google Sign-In Button (Mavi) */}
-                    <TouchableOpacity
-                        style={[styles.googleButton, styles.googleButtonBlue]}
-                        onPress={handleGoogleSignIn}>
-                        <Text style={styles.googleIconSmall}>🔍</Text>
-                        <Text style={styles.googleButtonText}>Google ile Giriş Yap</Text>
-                    </TouchableOpacity>
-
-                    {/* Alt Mesaj */}
-                    <View style={styles.footer}>
-                        <Text style={styles.footerEmoji}>🌟</Text>
-                        <Text style={styles.footerText}>Hayal gücün uçsun</Text>
-                        <Text style={styles.footerEmoji}>🌟</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Sağ Alt İkon */}
-            <View style={styles.bottomIcon}>
-                <Text style={styles.themeIcon}>🎨</Text>
-            </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </LinearGradient>
     );
 }
@@ -138,6 +261,13 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    keyboardView: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
     },
     content: {
         flex: 1,
@@ -174,8 +304,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logo: {
-        fontSize: 80,
-        marginBottom: 16,
+        fontSize: 60,
+        marginBottom: 12,
     },
     title: {
         fontSize: 28,
@@ -188,21 +318,17 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         marginBottom: 20,
     },
-    welcomeBox: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
+    input: {
         width: '100%',
-        marginBottom: 20,
+        height: 50,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        fontSize: 15,
+        color: '#003366',
+        marginBottom: 12,
     },
-    welcomeText: {
-        fontSize: 14,
-        color: '#0055AA',
-        textAlign: 'center',
-        fontWeight: '500',
-        lineHeight: 20,
-    },
-    googleButton: {
+    signInButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -211,11 +337,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         gap: 12,
     },
-    googleButtonPink: {
+    emailButton: {
         backgroundColor: '#FF5C8D',
-        marginBottom: 12,
+        marginTop: 4,
     },
-    googleButtonBlue: {
+    googleButton: {
         backgroundColor: '#0055AA',
     },
     googleIcon: {
@@ -223,10 +349,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFFFFF',
     },
-    googleIconSmall: {
-        fontSize: 18,
-    },
-    googleButtonText: {
+    signInButtonText: {
         fontSize: 15,
         fontWeight: '600',
         color: '#FFFFFF',
@@ -247,10 +370,21 @@ const styles = StyleSheet.create({
         fontSize: 13,
         paddingHorizontal: 12,
     },
+    registerLink: {
+        marginTop: 16,
+    },
+    registerText: {
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 13,
+    },
+    registerTextBold: {
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 12,
         gap: 6,
     },
     footerEmoji: {
@@ -260,13 +394,5 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 13,
         fontWeight: '500',
-    },
-    bottomIcon: {
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-    },
-    themeIcon: {
-        fontSize: 56,
     },
 });
