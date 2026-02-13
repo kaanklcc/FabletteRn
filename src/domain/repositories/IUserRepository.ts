@@ -3,67 +3,58 @@
  * 
  * Kullanıcı verileri işlemleri için sözleşme.
  * Firestore "users" collection'ı ile ilgili işlemler.
+ * 
+ * Clean Architecture:
+ * - Domain layer interface
+ * - Implementation data layer'da
  */
 
-import { UserData } from '../entities/UserData';
+import { User } from '../entities/User';
 
 export interface IUserRepository {
     /**
      * Kullanıcı verilerini getir
      * 
      * @param userId - Kullanıcı ID
-     * @returns Promise<UserData | null>
-     * 
-     * Kotlin karşılığı:
-     * Firestore.collection("users").document(userId).get()
+     * @returns Promise<User | null>
      */
-    getUserData(userId: string): Promise<UserData | null>;
+    getUserData(userId: string): Promise<User | null>;
 
     /**
-     * Kullanıcı verilerini güncelle
+     * Premium durumunu güncelle
      * 
      * @param userId - Kullanıcı ID
-     * @param data - Güncellenecek veriler (partial update)
+     * @param isPremium - Premium durumu
+     * @param durationDays - Premium süresi (gün)
      * @returns Promise<void>
      */
-    updateUserData(userId: string, data: Partial<UserData>): Promise<void>;
-
-    /**
-     * Yeni kullanıcı verisi oluştur
-     * 
-     * @param userId - Kullanıcı ID
-     * @param userData - Başlangıç verileri
-     * @returns Promise<void>
-     * 
-     * Kotlin karşılığı:
-     * DiscoveryBoxDataSource.saveUserData(userId, ad, soyad, email, onResult)
-     */
-    createUserData(userId: string, userData: UserData): Promise<void>;
-
-    /**
-     * Kullanıcı erişim haklarını kontrol et
-     * 
-     * @param userId - Kullanıcı ID
-     * @returns Promise<{canCreateStory: boolean, isPremium: boolean, usedFreeTrial: boolean}>
-     * 
-     * Kotlin karşılığı:
-     * AnasayfaViewModel.checkUserAccess(onResult)
-     */
-    checkUserAccess(userId: string): Promise<{
-        canCreateFullStory: boolean;
-        isPremium: boolean;
-        usedFreeTrial: boolean;
-        remainingUses: number;
-    }>;
+    updatePremiumStatus(
+        userId: string,
+        isPremium: boolean,
+        durationDays: number
+    ): Promise<void>;
 
     /**
      * Kullanıcının kalan hakkını azalt
      * 
      * @param userId - Kullanıcı ID
      * @returns Promise<void>
-     * 
-     * Kotlin karşılığı:
-     * DiscoveryBoxDataSource.decrementChatGptUse(userId, onComplete)
      */
-    decrementUserUses(userId: string): Promise<void>;
+    decrementCredits(userId: string): Promise<void>;
+
+    /**
+     * Kullanıcı verilerini kaydet (ilk kayıt)
+     * 
+     * @param userId - Kullanıcı ID
+     * @param firstName - Ad
+     * @param lastName - Soyad
+     * @param email - Email
+     * @returns Promise<void>
+     */
+    saveUserData(
+        userId: string,
+        firstName: string,
+        lastName: string,
+        email: string
+    ): Promise<void>;
 }

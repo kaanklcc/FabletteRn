@@ -28,13 +28,13 @@ export interface Story {
      * Tek görsel URL (eski hikayeler için)
      * Yeni hikayelerde boş olabilir
      */
-    imageUrl: string;
+    imageUrl?: string;
 
     /**
      * Her sayfa için ayrı görsel URL'leri
      * Yeni hikayeler bu array'i kullanır
      */
-    imageUrls: string[];
+    imageUrls?: string[];
 
     /**
      * Hikaye oluşturulma zamanı
@@ -46,7 +46,7 @@ export interface Story {
     /**
      * Hikayeyi oluşturan kullanıcının ID'si
      */
-    userId: string;
+    userId?: string;
 
     /**
      * Hikaye teması

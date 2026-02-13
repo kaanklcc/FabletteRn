@@ -1,7 +1,7 @@
 /**
  * User Entity
  * 
- * Firebase Authentication kullanıcısını temsil eder.
+ * Firebase Authentication ve Firestore kullanıcısını temsil eder.
  */
 
 export interface User {
@@ -11,24 +11,52 @@ export interface User {
     uid: string;
 
     /**
+     * Kullanıcı adı (Firestore: "ad")
+     */
+    firstName: string;
+
+    /**
+     * Kullanıcı soyadı (Firestore: "soyad")
+     */
+    lastName: string;
+
+    /**
      * Kullanıcı email adresi
      */
     email: string;
 
     /**
-     * Kullanıcı adı (opsiyonel)
-     * Google Sign-In'de displayName'den gelir
+     * Ücretsiz deneme kullanıldı mı?
      */
-    displayName?: string;
+    usedFreeTrial: boolean;
+
+    /**
+     * Premium üye mi?
+     */
+    isPremium: boolean;
+
+    /**
+     * Kalan hikaye oluşturma hakkı
+     */
+    remainingCredits: number;
+
+    /**
+     * Premium başlangıç tarihi
+     */
+    premiumStartDate: Date | null;
+
+    /**
+     * Premium süre (gün)
+     */
+    premiumDurationDays: number;
 
     /**
      * Profil fotoğrafı URL (opsiyonel)
-     * Google Sign-In'de photoURL'den gelir
      */
     photoURL?: string;
 
     /**
      * Email doğrulanmış mı?
      */
-    emailVerified: boolean;
+    emailVerified?: boolean;
 }
