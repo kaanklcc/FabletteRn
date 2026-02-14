@@ -187,7 +187,7 @@ export default function LoginScreen({ navigation }: Props) {
                             <Text style={styles.logo}>📚</Text>
 
                             {/* Başlık */}
-                            <Text style={styles.title}>Fabllette</Text>
+                            <Text style={styles.title}>Fablette</Text>
                             <Text style={styles.subtitle}>Harika hikayeler yarat</Text>
 
                             {/* Email Input */}
@@ -308,13 +308,13 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     title: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
         color: '#FFFFFF',
         marginBottom: 4,
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: 16,
         color: '#FFFFFF',
         marginBottom: 20,
     },
