@@ -61,9 +61,9 @@ export interface Story {
     length?: string;
 
     /**
-     * Hikaye sayfaları (StoryPage array)
+     * Hikaye sayfaları
      */
-    pages?: any[]; // TODO: StoryPage[] olacak
+    pages?: import('./StoryPage').StoryPage[];
 }
 
 /**
