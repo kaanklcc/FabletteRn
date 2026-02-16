@@ -26,6 +26,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -199,7 +200,11 @@ export default function LoginScreen({ navigation }: Props) {
                         {/* Ana Kart */}
                         <View style={styles.card}>
                             {/* Logo */}
-                            <Text style={styles.logo}>📚</Text>
+                            <Image
+                                source={require('../../../../assets/applogo.png')}
+                                style={styles.logo}
+                                resizeMode="contain"
+                            />
 
                             {/* Başlık */}
                             <Text style={styles.title}>Fablette</Text>
@@ -319,7 +324,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logo: {
-        fontSize: 60,
+        width: 120,
+        height: 120,
         marginBottom: 12,
     },
     title: {

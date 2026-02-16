@@ -28,6 +28,7 @@ import {
     Text,
     StyleSheet,
     StatusBar,
+    Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/store/zustand/useAuthStore';
@@ -109,7 +110,11 @@ export default function SplashScreen({ navigation }: Props) {
                  * Kotlin karşılığı: 
                  * Image(painterResource(R.drawable.applogo), modifier = Modifier.size(300.dp))
                  */}
-                <Text style={styles.logo}>📚</Text>
+                <Image
+                    source={require('../../../../assets/applogo.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
 
                 <View style={styles.spacer} />
 
@@ -135,7 +140,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logo: {
-        fontSize: moderateScale(100),
+        width: moderateScale(200),
+        height: moderateScale(200),
     },
     spacer: {
         height: verticalScale(20),

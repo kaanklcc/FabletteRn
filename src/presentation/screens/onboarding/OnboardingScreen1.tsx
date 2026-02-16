@@ -121,10 +121,11 @@ export default function OnboardingScreen1({ navigation }: Props) {
                        ═══════════════════════════════════════════ */}
                     <View style={styles.imageSection}>
                         <View style={styles.imageWrapper}>
-                            <View style={styles.imageContainer}>
-                                {/* Placeholder - Gerçek görsel sonra eklenecek */}
-                                <Text style={styles.placeholderEmoji}>🏰</Text>
-                            </View>
+                            <Image
+                                source={require('../../../../assets/castle.png')}
+                                style={styles.imageContainer}
+                                resizeMode="cover"
+                            />
                         </View>
                     </View>
 
@@ -231,28 +232,24 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: verticalScale(20),
     },
-   imageWrapper: {
-    width: '100%',
-    aspectRatio: 1.2,
-    borderRadius: 16,
-    borderWidth: 12,
-    borderColor: 'rgba(100, 120, 180, 0.6)',
-    overflow: 'hidden',
-  },
+    imageWrapper: {
+        width: '100%',
+        aspectRatio: 1.2,
+        borderRadius: 16,
+        borderWidth: 12,
+        borderColor: 'rgba(100, 120, 180, 0.6)',
+        overflow: 'hidden',
+    },
 
     imageContainer: {
         flex: 1,
-        backgroundColor: '#E0DAD2',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    placeholderEmoji: {
-        fontSize: scale(100),
+        width: '100%',
+        height: '100%',
     },
 
     // ── Info Box ──────────────────────────────
     infoBox: {
-               width: '100%',
+        width: '100%',
         backgroundColor: '#0055AA',
         borderRadius: 16,
         borderWidth: 1,
@@ -274,7 +271,7 @@ const styles = StyleSheet.create({
         fontSize: fontSize.xl,
         color: colors.white,
         lineHeight: verticalScale(28),
-        
+
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,

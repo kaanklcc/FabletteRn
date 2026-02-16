@@ -121,10 +121,11 @@ export default function OnboardingScreen2({ navigation }: Props) {
                        ═══════════════════════════════════════════ */}
                     <View style={styles.imageSection}>
                         <View style={styles.imageWrapper}>
-                            <View style={styles.imageContainer}>
-                                {/* Placeholder - Gerçek görsel sonra eklenecek */}
-                                <Text style={styles.placeholderEmoji}>👨‍👩‍👧‍👦</Text>
-                            </View>
+                            <Image
+                                source={require('../../../../assets/s2.png')}
+                                style={styles.imageContainer}
+                                resizeMode="cover"
+                            />
                         </View>
                     </View>
 
@@ -228,26 +229,22 @@ const styles = StyleSheet.create({
 
     // ── Image Section ─────────────────────────
     imageSection: {
-        
+
         width: '100%',
         marginBottom: verticalScale(16),
     },
     imageWrapper: {
-         width: '100%',
-    aspectRatio: 1.2,
-    borderRadius: 16,
-    borderWidth: 12,
-    borderColor: 'rgba(100, 120, 180, 0.6)',
-    overflow: 'hidden',
+        width: '100%',
+        aspectRatio: 1.2,
+        borderRadius: 16,
+        borderWidth: 12,
+        borderColor: 'rgba(100, 120, 180, 0.6)',
+        overflow: 'hidden',
     },
     imageContainer: {
         flex: 1,
-        backgroundColor: colors.white,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    placeholderEmoji: {
-        fontSize: scale(100),
+        width: '100%',
+        height: '100%',
     },
 
     // ── Info Box ──────────────────────────────
@@ -262,7 +259,7 @@ const styles = StyleSheet.create({
         marginBottom: verticalScale(20),
     },
     infoTitleRow: {
-         flexDirection: 'row',
+        flexDirection: 'row',
         alignItems: 'center',
         gap: scale(6),
         marginBottom: verticalScale(6),
@@ -271,16 +268,16 @@ const styles = StyleSheet.create({
         fontSize: fontSize.md,
     },
     infoTitle: {
-       fontSize: fontSize.xl,
+        fontSize: fontSize.xl,
         color: colors.white,
         lineHeight: verticalScale(28),
-        
+
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
     },
     infoDescription: {
-       fontSize: fontSize.md,
+        fontSize: fontSize.md,
         color: colors.white,
         fontWeight: '600',
         textAlign: 'center',
@@ -289,7 +286,7 @@ const styles = StyleSheet.create({
 
     // ── Next Button ───────────────────────────
     nextButton: {
-       width: scale(160),
+        width: scale(160),
         height: verticalScale(52),
         borderRadius: 25,
         borderWidth: 3,
@@ -300,7 +297,7 @@ const styles = StyleSheet.create({
         gap: scale(8),
     },
     nextButtonText: {
-         fontSize: fontSize.xl,
+        fontSize: fontSize.xl,
         color: colors.white,
         fontWeight: 'bold',
     },
