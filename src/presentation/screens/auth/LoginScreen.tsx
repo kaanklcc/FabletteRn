@@ -34,6 +34,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuthStore } from '@/store/zustand/useAuthStore';
+import { useUserStore } from '@/store/zustand/useUserStore';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
     AuthStackParamList,
@@ -52,6 +53,7 @@ export default function LoginScreen({ navigation }: Props) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const setUser = useAuthStore((state) => state.setUser);
+    const setUserData = useUserStore((state) => state.setUserData);
 
     // ─────────────────────────────────────────────────────────
     // EMAIL/PASSWORD SIGN-IN
@@ -71,43 +73,56 @@ export default function LoginScreen({ navigation }: Props) {
             const userRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userRef);
 
+            let firestoreData: any;
+
             if (!userDoc.exists()) {
-                // Yeni kullanıcı - Firestore'a kaydet (Android uygulamasıyla aynı yapı)
+                // Yeni kullanıcı - Firestore'a kaydet (DiscoveryBox2 yapısıyla aynı)
                 const displayName = user.displayName || email.split('@')[0];
-                await setDoc(userRef, {
+                firestoreData = {
                     ad: displayName,
                     soyad: '',
                     email: user.email || '',
                     premium: false,
-                    remainingChatgptUses: 0,
-                    remainingFreeUses: 3,
-                    adsWatchedToday: 0,
-                    lastFreeUseReset: new Date().toISOString().split('T')[0],
                     premiumStartDate: null,
                     premiumDurationDays: 0,
-                    usedFreeTrial: false,
-                });
+                    remainingChatgptUses: 0,
+                    usedFreeTrial: true,
+                };
+                await setDoc(userRef, firestoreData);
                 console.log('✅ Yeni kullanıcı Firestore\'a kaydedildi');
+            } else {
+                firestoreData = userDoc.data();
             }
 
-            // Auth store'u güncelle
-            const firestoreData = userDoc.exists() ? userDoc.data() : null;
-            const displayName = user.displayName || '';
+            // Auth store'u güncelle (Firestore verilerini dahil et)
+            const displayName = user.displayName || firestoreData.ad || '';
             const [firstName = '', ...lastNameParts] = displayName.split(' ');
             const lastName = lastNameParts.join(' ');
 
             setUser({
                 uid: user.uid,
-                firstName,
-                lastName,
+                firstName: firestoreData.ad || firstName,
+                lastName: firestoreData.soyad || lastName,
                 email: user.email || '',
                 emailVerified: user.emailVerified,
                 photoURL: user.photoURL || undefined,
-                usedFreeTrial: false,
-                isPremium: false,
-                remainingCredits: 0,
-                premiumStartDate: null,
-                premiumDurationDays: 0,
+                usedFreeTrial: firestoreData.usedFreeTrial ?? true,
+                isPremium: firestoreData.premium ?? false,
+                remainingCredits: firestoreData.remainingChatgptUses ?? 0,
+                premiumStartDate: firestoreData.premiumStartDate?.toDate?.() || null,
+                premiumDurationDays: firestoreData.premiumDurationDays ?? 0,
+            });
+
+            // User data store'u güncelle (premium kontrolleri için)
+            setUserData({
+                ad: firestoreData.ad || firstName,
+                soyad: firestoreData.soyad || lastName,
+                email: user.email || '',
+                premium: firestoreData.premium ?? false,
+                premiumStartDate: firestoreData.premiumStartDate?.toDate?.() || null,
+                premiumDurationDays: firestoreData.premiumDurationDays ?? 0,
+                remainingChatgptUses: firestoreData.remainingChatgptUses ?? 0,
+                usedFreeTrial: firestoreData.usedFreeTrial ?? true,
             });
 
             // Main ekranına git

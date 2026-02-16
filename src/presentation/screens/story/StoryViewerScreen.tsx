@@ -3,17 +3,15 @@
  * STORY VIEWER SCREEN
  * ═══════════════════════════════════════════════════════════════
  * 
- * DiscoveryBox2 Metin.kt'nin birebir kopyası
+ * Kotlin karşılığı: Metin.kt
  * 
- * Özellikler:
- * - Story pages with images
- * - Text-to-Speech audio playback
- * - Page navigation (Previous/Next)
- * - Save functionality
- * - Responsive design
+ * Üç modda çalışır:
+ * 1. Generation Mode: generationParams ile yeni hikaye oluşturur
+ * 2. Saved Story Mode: source='saved' ile kullanıcının kayıtlı hikayesini açar
+ * 3. Featured Story Mode: storyId ile featuredStories'den hikaye çeker
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -21,178 +19,429 @@ import {
     Text,
     TouchableOpacity,
     Image,
-    Alert,
     ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import { CreateStackParamList } from '../../navigation/types';
-import * as Speech from 'expo-speech';
+import { useRoute } from '@react-navigation/native';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+
+// Hooks
+import { useFeaturedStory } from '@/presentation/hooks/useFeaturedStories';
+import { useStory } from '@/presentation/hooks/useStories';
+import { useStoryGeneration } from '@/store/queries/useStoryGeneration';
+
+// Store
+import { useAuthStore } from '@/store/zustand/useAuthStore';
+import { useUserStore } from '@/store/zustand/useUserStore';
 
 // Config
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
 
-type StoryViewerScreenNavigationProp = NativeStackNavigationProp<
-    CreateStackParamList,
-    'StoryViewer'
->;
+// Navigation - route params union type
+import { StoryGenerationParams } from '../../navigation/types';
 
-type StoryViewerScreenRouteProp = RouteProp<CreateStackParamList, 'StoryViewer'>;
+interface RouteParams {
+    storyId?: string;
+    generationParams?: StoryGenerationParams;
+    source?: 'saved';
+}
 
 interface Props {
-    navigation: StoryViewerScreenNavigationProp;
+    navigation: any;
 }
 
-// Story Page Interface
-interface StoryPage {
+// ─────────────────────────────────────────────────────────
+// UNIFIED PAGE TYPE (tüm modlar için ortak)
+// ─────────────────────────────────────────────────────────
+interface ViewerPage {
     pageNumber: number;
     content: string;
-    imageUrl?: string;
+    imageUrl: string;
+    audioUrl?: string;
 }
 
-// Mock Story Data (TODO: Replace with Firestore)
-const MOCK_STORY = {
-    id: 'story_1',
-    title: 'Sihirli Orman Macerası',
-    pages: [
-        {
-            pageNumber: 1,
-            content:
-                'Bir zamanlar, küçük bir köyde yaşayan Ayşe adında cesur bir kız vardı. Ayşe her gün ormanın kenarında oynar ve hayal kurar, bir gün büyük bir macera yaşamayı umardı.',
-            imageUrl: 'https://picsum.photos/400/480?random=1',
-        },
-        {
-            pageNumber: 2,
-            content:
-                'Bir gün, ormanın derinliklerinden gelen gizemli bir ışık gördü. Merakla ışığa doğru yürüdü ve sihirli bir kapı buldu. Kapı parlak renklerle kaplıydı.',
-            imageUrl: 'https://picsum.photos/400/480?random=2',
-        },
-        {
-            pageNumber: 3,
-            content:
-                'Kapıyı açtığında, içeride konuşan hayvanlar ve uçan ağaçlar gördü. Sihirli orman ona "Hoş geldin cesur kız!" dedi. Ayşe şaşkınlıkla etrafına baktı.',
-            imageUrl: 'https://picsum.photos/400/480?random=3',
-        },
-        {
-            pageNumber: 4,
-            content:
-                'Ormanın kralı, bilge bir baykuş, Ayşe\'ye önemli bir görev verdi. "Köyünü kurtarmak için sihirli kristali bulmalısın" dedi. Ayşe cesaretle yola koyuldu.',
-            imageUrl: 'https://picsum.photos/400/480?random=4',
-        },
-    ],
-};
+interface ViewerStory {
+    title: string;
+    pages: ViewerPage[];
+}
+
+// ─────────────────────────────────────────────────────────
+// LOADING MESSAGES (DiscoveryBox2 strings.xml)
+// ─────────────────────────────────────────────────────────
+const LOADING_MESSAGES = [
+    { icon: '🌍', text: 'Yeni Bir Dünya Yaratılıyor...' },
+    { icon: '🎭', text: 'Karakterler Canlandırılıyor...' },
+    { icon: '🔊', text: 'Sesler Duyulmaya Başlanıyor...' },
+];
+
+const LOADING_IMAGES = ['📖', '🌙', '✨', '🏰', '🐉', '🦄'];
 
 export default function StoryViewerScreen({ navigation }: Props) {
-    const route = useRoute<StoryViewerScreenRouteProp>();
-    const { storyId } = route.params;
+    const route = useRoute();
+    const params = (route.params || {}) as RouteParams;
+    const { storyId, generationParams, source } = params;
+
+    // ─── MOD BELİRLEME ──────────────────────────────────
+    const isGenerationMode = !!generationParams;
+    const isSavedMode = !isGenerationMode && source === 'saved' && !!storyId;
+    const isFeaturedMode = !isGenerationMode && !isSavedMode && !!storyId;
 
     // ─────────────────────────────────────────────────────────
-    // STATE
+    // GENERATION MODE
     // ─────────────────────────────────────────────────────────
-    const [story] = useState(MOCK_STORY); // TODO: Fetch from Firestore
-    const [currentPageIndex, setCurrentPageIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
+    const generation = useStoryGeneration();
 
-    const currentPage = story.pages[currentPageIndex];
-
-    // ─────────────────────────────────────────────────────────
-    // TTS SETUP (expo-speech)
-    // ─────────────────────────────────────────────────────────
     useEffect(() => {
-        // Cleanup on unmount
+        if (isGenerationMode && generationParams) {
+            generation.startGeneration(generationParams);
+        }
         return () => {
-            Speech.stop();
+            generation.resetGeneration();
         };
     }, []);
 
     // ─────────────────────────────────────────────────────────
-    // AUTO-PLAY ON PAGE CHANGE
+    // SAVED STORY MODE (users/{userId}/hikayeler)
     // ─────────────────────────────────────────────────────────
+    const {
+        data: savedStory,
+        isLoading: savedLoading,
+        error: savedError,
+    } = useStory(isSavedMode ? storyId! : '');
+
+    // ─────────────────────────────────────────────────────────
+    // FEATURED STORY MODE (featuredStories)
+    // ─────────────────────────────────────────────────────────
+    const {
+        data: featuredStory,
+        isLoading: featuredLoading,
+        error: featuredError,
+    } = useFeaturedStory(isFeaturedMode ? storyId! : '');
+
+    // ─────────────────────────────────────────────────────────
+    // UNIFIED STORY DATA
+    // ─────────────────────────────────────────────────────────
+    let story: ViewerStory | null = null;
+    let isLoading = false;
+    let error: string | null = null;
+
+    if (isGenerationMode) {
+        isLoading = generation.status !== 'complete' && generation.status !== 'error';
+        error = generation.error;
+        if (generation.story) {
+            story = {
+                title: generation.story.title,
+                pages: generation.story.pages.map(p => ({
+                    pageNumber: p.pageNumber,
+                    content: p.content,
+                    imageUrl: p.imageUrl || '',
+                    audioUrl: p.audioUrl || undefined,
+                })),
+            };
+        }
+    } else if (isSavedMode) {
+        isLoading = savedLoading;
+        error = savedError ? (savedError as Error).message : null;
+        if (savedStory) {
+            story = {
+                title: savedStory.title,
+                pages: savedStory.pages
+                    ? savedStory.pages.map((p, index) => ({
+                        pageNumber: p.pageNumber || index + 1,
+                        content: p.content,
+                        imageUrl: p.imageUrl || '',
+                        audioUrl: undefined,
+                    }))
+                    : [{
+                        pageNumber: 1,
+                        content: savedStory.content,
+                        imageUrl: savedStory.imageUrl || '',
+                        audioUrl: undefined,
+                    }],
+            };
+        }
+    } else if (isFeaturedMode) {
+        isLoading = featuredLoading;
+        error = featuredError ? (featuredError as Error).message : null;
+        if (featuredStory) {
+            story = {
+                title: featuredStory.title,
+                pages: featuredStory.pages.map(p => ({
+                    pageNumber: p.pageNumber,
+                    content: p.content,
+                    imageUrl: p.imageUrl || '',
+                    audioUrl: p.audioUrl || undefined,
+                })),
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // PAGE STATE
+    // ─────────────────────────────────────────────────────────
+    const [currentPageIndex, setCurrentPageIndex] = useState(0);
+
+    const currentPage = story?.pages?.[currentPageIndex];
+    const totalPages = story?.pages?.length || 0;
+    const isFirstPage = currentPageIndex === 0;
+    const isLastPage = currentPageIndex >= totalPages - 1;
+
+    // ─────────────────────────────────────────────────────────
+    // AUDIO (expo-audio)
+    // ─────────────────────────────────────────────────────────
+    const audioUrl = currentPage?.audioUrl || null;
+    const hasAudio = !!audioUrl;
+    const player = useAudioPlayer(null);
+    const status = useAudioPlayerStatus(player);
+
     useEffect(() => {
-        if (isPlaying) {
-            Speech.stop();
-            setTimeout(() => {
-                Speech.speak(currentPage.content, {
-                    language: 'tr-TR',
-                    rate: 0.8,
-                    pitch: 1.0,
-                    onDone: () => {
-                        setIsPlaying(false);
-                        // Auto-advance to next page
-                        if (currentPageIndex < story.pages.length - 1) {
-                            setCurrentPageIndex(currentPageIndex + 1);
-                        }
-                    },
-                });
-            }, 100);
+        setAudioModeAsync({ playsInSilentMode: true });
+    }, []);
+
+    // audioUrl değiştiğinde yeni kaynak yükle
+    useEffect(() => {
+        if (audioUrl && audioUrl.length > 0) {
+            console.log('🔊 Loading audio:', audioUrl.substring(0, 80));
+            try {
+                player.replace({ uri: audioUrl });
+            } catch (err) {
+                console.error('Audio replace error:', err);
+            }
+        }
+    }, [audioUrl]);
+
+    // Sayfa değişince sesi durdur
+    useEffect(() => {
+        if (player) {
+            try { player.pause(); } catch (_) { /* ignore */ }
         }
     }, [currentPageIndex]);
+
+    // Ses bitince otomatik sonraki sayfaya geç
+    useEffect(() => {
+        if (
+            status.playing === false &&
+            status.currentTime > 0 &&
+            status.duration > 0 &&
+            status.currentTime >= status.duration - 0.5
+        ) {
+            if (!isLastPage) {
+                setCurrentPageIndex(prev => prev + 1);
+            }
+        }
+    }, [status.playing, status.currentTime, status.duration]);
+
+    // ─────────────────────────────────────────────────────────
+    // SAVE STORY
+    // ─────────────────────────────────────────────────────────
+    const { user } = useAuthStore();
+    const { decrementUses } = useUserStore();
+    const [isSaved, setIsSaved] = useState(false);
+
+    const handleSaveStory = useCallback(async () => {
+        if (!generation.story || !user) return;
+
+        try {
+            const { StoryRepositoryImpl } = await import('@/data/repositories/StoryRepositoryImpl');
+            const repo = new StoryRepositoryImpl();
+
+            const imageUrls = generation.story.pages
+                .map(p => p.imageUrl)
+                .filter((url): url is string =>
+                    !!url &&
+                    url.length > 0 &&
+                    !url.startsWith('data:') &&
+                    url.startsWith('http')
+                );
+
+            console.log('💾 Saving story with', imageUrls.length, 'images');
+
+            await repo.saveStory({
+                userId: user.uid,
+                title: generation.story.title,
+                content: generation.story.fullContent,
+                imageUrls,
+            });
+
+            decrementUses();
+            setIsSaved(true);
+            Alert.alert('Başarılı', 'Hikaye kaydedildi!');
+        } catch (err: any) {
+            console.error('Save error:', err);
+            Alert.alert('Hata', err.message || 'Hikaye kaydedilemedi');
+        }
+    }, [generation.story, user, decrementUses]);
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
     // ─────────────────────────────────────────────────────────
-    const handlePlayPause = async () => {
-        if (isPlaying) {
-            await Speech.stop();
-            setIsPlaying(false);
+    const handlePlayPause = () => {
+        if (!audioUrl) return;
+
+        if (status.playing) {
+            player.pause();
         } else {
-            setIsLoading(true);
-            Speech.speak(currentPage.content, {
-                language: 'tr-TR',
-                rate: 0.8,
-                pitch: 1.0,
-                onDone: () => {
-                    setIsPlaying(false);
-                    setIsLoading(false);
-                    // Auto-advance to next page
-                    if (currentPageIndex < story.pages.length - 1) {
-                        setCurrentPageIndex(currentPageIndex + 1);
-                    }
-                },
-            });
-            setIsPlaying(true);
-            setIsLoading(false);
+            if (status.duration > 0 && status.currentTime >= status.duration - 0.5) {
+                player.seekTo(0);
+            }
+            player.play();
         }
     };
 
     const handlePrevious = () => {
-        if (currentPageIndex > 0) {
-            if (isPlaying) {
-                Speech.stop();
-                setIsPlaying(false);
-            }
-            setCurrentPageIndex(currentPageIndex - 1);
-        }
+        if (isFirstPage) return;
+        try { player.pause(); } catch (_) { /* ignore */ }
+        setCurrentPageIndex(prev => prev - 1);
     };
 
     const handleNext = () => {
-        if (currentPageIndex < story.pages.length - 1) {
-            if (isPlaying) {
-                Speech.stop();
-                setIsPlaying(false);
-            }
-            setCurrentPageIndex(currentPageIndex + 1);
-        }
+        if (isLastPage) return;
+        try { player.pause(); } catch (_) { /* ignore */ }
+        setCurrentPageIndex(prev => prev + 1);
     };
 
-    const handleSave = () => {
-        // TODO: Save to Firestore
-        setIsSaved(true);
-        Alert.alert('Başarılı', 'Hikaye kaydedildi!');
-    };
-
-    const handleGoHome = () => {
-        Speech.stop();
-        navigation.navigate('CreateStory');
+    const handleGoBack = () => {
+        try { player.pause(); } catch (_) { /* ignore */ }
+        if (isGenerationMode) generation.resetGeneration();
+        navigation.goBack();
     };
 
     // ─────────────────────────────────────────────────────────
-    // RENDER
+    // RENDER: GENERATION LOADING SCREEN
+    // ─────────────────────────────────────────────────────────
+    if (isGenerationMode && generation.status !== 'complete' && generation.status !== 'error') {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
+                    <View style={styles.loadingContainer}>
+                        <TouchableOpacity
+                            style={styles.loadingBackButton}
+                            onPress={handleGoBack}>
+                            <Text style={styles.loadingBackButtonText}>{'<'}</Text>
+                        </TouchableOpacity>
+
+                        <AnimatedLoadingImages />
+
+                        <View style={styles.loadingMessagesContainer}>
+                            {LOADING_MESSAGES.map((msg, index) => (
+                                <AnimatedMessage
+                                    key={index}
+                                    icon={msg.icon}
+                                    text={msg.text}
+                                    delay={index * 600}
+                                    status={generation.status}
+                                    messageIndex={index}
+                                />
+                            ))}
+                        </View>
+
+                        <View style={styles.progressBarContainer}>
+                            <View style={styles.progressBarBackground}>
+                                <LinearGradient
+                                    colors={['#FCD34D', '#F59E0B']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[
+                                        styles.progressBarFill,
+                                        { width: `${Math.max(5, generation.progress)}%` },
+                                    ]}
+                                />
+                            </View>
+                            <Text style={styles.progressText}>
+                                %{Math.round(generation.progress)}
+                            </Text>
+                        </View>
+
+                        <Text style={styles.loadingStepText}>
+                            {generation.currentStep || 'Hazırlanıyor...'}
+                        </Text>
+                        <Text style={styles.loadingHint}>
+                            Bu birkaç dakika sürebilir...
+                        </Text>
+                    </View>
+                </LinearGradient>
+            </SafeAreaView>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER: ERROR
+    // ─────────────────────────────────────────────────────────
+    if (error || generation.status === 'error') {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.errorEmoji}>😕</Text>
+                        <Text style={styles.statusText}>
+                            {isGenerationMode ? 'Hikaye oluşturulamadı' : 'Hikaye bulunamadı'}
+                        </Text>
+                        <Text style={styles.debugText}>
+                            {error || generation.error}
+                        </Text>
+                        <View style={styles.errorButtonRow}>
+                            <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack}>
+                                <Text style={styles.goBackButtonText}>Geri Dön</Text>
+                            </TouchableOpacity>
+                            {isGenerationMode && (
+                                <TouchableOpacity
+                                    style={[styles.goBackButton, { backgroundColor: colors.accent }]}
+                                    onPress={() => {
+                                        generation.resetGeneration();
+                                        generation.startGeneration(generationParams!);
+                                    }}>
+                                    <Text style={styles.goBackButtonText}>Tekrar Dene</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                </LinearGradient>
+            </SafeAreaView>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER: LOADING (saved/featured fetch)
+    // ─────────────────────────────────────────────────────────
+    if (!isGenerationMode && isLoading) {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.accent} />
+                        <Text style={styles.statusText}>Hikaye yükleniyor...</Text>
+                    </View>
+                </LinearGradient>
+            </SafeAreaView>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER: NOT FOUND
+    // ─────────────────────────────────────────────────────────
+    if (!story || totalPages === 0) {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.errorEmoji}>😕</Text>
+                        <Text style={styles.statusText}>Hikaye bulunamadı</Text>
+                        <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack}>
+                            <Text style={styles.goBackButtonText}>Geri Dön</Text>
+                        </TouchableOpacity>
+                    </View>
+                </LinearGradient>
+            </SafeAreaView>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER: STORY CONTENT
     // ─────────────────────────────────────────────────────────
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -205,18 +454,24 @@ export default function StoryViewerScreen({ navigation }: Props) {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}>
-                    {/* Story Image */}
+
+                    {/* ═══ PAGE IMAGE ═══ */}
                     <View style={styles.imageContainer}>
-                        <Image
-                            source={{ uri: currentPage.imageUrl }}
-                            style={styles.image}
-                            resizeMode="cover"
-                        />
-                        {/* Gradient Overlay */}
+                        {currentPage?.imageUrl && currentPage.imageUrl.length > 0 ? (
+                            <Image
+                                source={{ uri: currentPage.imageUrl }}
+                                style={styles.image}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <View style={[styles.image, styles.imagePlaceholder]}>
+                                <Text style={styles.imagePlaceholderIcon}>🎨</Text>
+                            </View>
+                        )}
+
                         <LinearGradient
                             colors={[
-                                'transparent',
-                                'transparent',
+                                'transparent', 'transparent',
                                 'rgba(0, 51, 102, 0.2)',
                                 'rgba(0, 51, 102, 0.5)',
                                 'rgba(0, 51, 102, 0.8)',
@@ -228,97 +483,208 @@ export default function StoryViewerScreen({ navigation }: Props) {
                         {/* Back Button */}
                         <TouchableOpacity
                             style={styles.backButton}
-                            onPress={() => navigation.goBack()}
+                            onPress={handleGoBack}
                             activeOpacity={0.8}>
-                            <Text style={styles.backButtonText}>←</Text>
+                            <Text style={styles.backButtonText}>{'<'}</Text>
                         </TouchableOpacity>
 
                         {/* Play/Pause Button */}
-                        <TouchableOpacity
-                            style={styles.playButton}
-                            onPress={handlePlayPause}
-                            activeOpacity={0.8}>
-                            {isLoading ? (
-                                <ActivityIndicator color="#003366" size="small" />
-                            ) : (
-                                <Text style={styles.playButtonText}>{isPlaying ? '⏸' : '▶'}</Text>
-                            )}
-                        </TouchableOpacity>
+                        {hasAudio && (
+                            <TouchableOpacity
+                                style={styles.playButton}
+                                onPress={handlePlayPause}
+                                activeOpacity={0.8}>
+                                <Text style={styles.playButtonText}>
+                                    {status.playing ? '⏸' : '▶'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
-                    {/* Story Title */}
+                    {/* ═══ TITLE ═══ */}
                     <Text style={styles.title}>{story.title}</Text>
 
-                    {/* Page Indicator */}
+                    {/* ═══ PAGE INDICATOR ═══ */}
                     <Text style={styles.pageIndicator}>
-                        Sayfa {currentPage.pageNumber} / {story.pages.length}
+                        Sayfa {currentPageIndex + 1} / {totalPages}
                     </Text>
 
-                    {/* Story Content */}
-                    <Text style={styles.content}>{currentPage.content}</Text>
+                    {/* ═══ PAGE CONTENT ═══ */}
+                    <Text style={styles.content}>{currentPage?.content}</Text>
 
-                    {/* Navigation Buttons */}
-                    <View style={styles.navigationRow}>
+                    {/* ═══ PAGE NAVIGATION ═══ */}
+                    <View style={styles.navRow}>
                         <TouchableOpacity
-                            style={[
-                                styles.navButton,
-                                currentPageIndex === 0 && styles.navButtonDisabled,
-                            ]}
+                            style={[styles.navButton, isFirstPage && styles.navButtonDisabled]}
                             onPress={handlePrevious}
-                            disabled={currentPageIndex === 0}
+                            disabled={isFirstPage}
                             activeOpacity={0.8}>
-                            <Text
-                                style={[
-                                    styles.navButtonText,
-                                    currentPageIndex === 0 && styles.navButtonTextDisabled,
-                                ]}>
+                            <Text style={[styles.navButtonText, isFirstPage && styles.navButtonTextDisabled]}>
                                 Önceki
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[
-                                styles.navButton,
-                                currentPageIndex === story.pages.length - 1 &&
-                                styles.navButtonDisabled,
-                            ]}
+                            style={[styles.navButton, isLastPage && styles.navButtonDisabled]}
                             onPress={handleNext}
-                            disabled={currentPageIndex === story.pages.length - 1}
+                            disabled={isLastPage}
                             activeOpacity={0.8}>
-                            <Text
-                                style={[
-                                    styles.navButtonText,
-                                    currentPageIndex === story.pages.length - 1 &&
-                                    styles.navButtonTextDisabled,
-                                ]}>
+                            <Text style={[styles.navButtonText, isLastPage && styles.navButtonTextDisabled]}>
                                 Sonraki
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Action Buttons */}
-                    <View style={styles.actionRow}>
+                    {/* ═══ PAGE DOTS ═══ */}
+                    <View style={styles.dotsContainer}>
+                        {story.pages.map((_: any, index: number) => (
+                            <View
+                                key={index}
+                                style={[
+                                    styles.dot,
+                                    index === currentPageIndex && styles.dotActive,
+                                ]}
+                            />
+                        ))}
+                    </View>
+
+                    {/* ═══ SAVE BUTTON (only for generated stories) ═══ */}
+                    {isGenerationMode && generation.status === 'complete' && !isSaved && (
                         <TouchableOpacity
                             style={styles.saveButton}
-                            onPress={handleSave}
+                            onPress={handleSaveStory}
                             activeOpacity={0.8}>
-                            <Text style={styles.saveButtonIcon}>{isSaved ? '❤️' : '🤍'}</Text>
-                            <Text style={styles.saveButtonText}>Kaydet</Text>
+                            <Text style={styles.saveButtonIcon}>💾</Text>
+                            <Text style={styles.saveButtonText}>Hikayeyi Kaydet</Text>
                         </TouchableOpacity>
+                    )}
 
-                        <TouchableOpacity
-                            style={styles.homeButton}
-                            onPress={handleGoHome}
-                            activeOpacity={0.8}>
-                            <Text style={styles.homeButtonText}>Ana Sayfaya Dön</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {isSaved && (
+                        <View style={styles.savedBadge}>
+                            <Text style={styles.savedBadgeText}>✅ Hikaye kaydedildi</Text>
+                        </View>
+                    )}
                 </ScrollView>
             </LinearGradient>
         </SafeAreaView>
     );
 }
 
+// ─────────────────────────────────────────────────────────
+// ANIMATED LOADING IMAGES
+// ─────────────────────────────────────────────────────────
+function AnimatedLoadingImages() {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 400,
+                easing: Easing.ease,
+                useNativeDriver: true,
+            }).start(() => {
+                setCurrentIndex(prev => (prev + 1) % LOADING_IMAGES.length);
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 400,
+                    easing: Easing.ease,
+                    useNativeDriver: true,
+                }).start();
+            });
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, [fadeAnim]);
+
+    return (
+        <View style={styles.loadingImageContainer}>
+            <Animated.View style={[styles.loadingImageCircle, { opacity: fadeAnim }]}>
+                <Text style={styles.loadingImageEmoji}>
+                    {LOADING_IMAGES[currentIndex]}
+                </Text>
+            </Animated.View>
+        </View>
+    );
+}
+
+// ─────────────────────────────────────────────────────────
+// ANIMATED MESSAGE
+// ─────────────────────────────────────────────────────────
+function AnimatedMessage({
+    icon,
+    text,
+    delay,
+    status,
+    messageIndex,
+}: {
+    icon: string;
+    text: string;
+    delay: number;
+    status: string;
+    messageIndex: number;
+}) {
+    const opacity = useRef(new Animated.Value(0.4)).current;
+
+    const isActive =
+        (status === 'generating_text' && messageIndex === 0) ||
+        (status === 'generating_images' && messageIndex === 1) ||
+        (status === 'generating_audio' && messageIndex === 2) ||
+        (status === 'finalizing' && messageIndex === 2);
+
+    useEffect(() => {
+        if (isActive) {
+            const pulse = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(opacity, {
+                        toValue: 1,
+                        duration: 800,
+                        easing: Easing.ease,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(opacity, {
+                        toValue: 0.5,
+                        duration: 800,
+                        easing: Easing.ease,
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+            pulse.start();
+            return () => pulse.stop();
+        } else {
+            Animated.timing(opacity, {
+                toValue: 0.3,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [isActive, opacity]);
+
+    return (
+        <Animated.View style={[styles.loadingMessageRow, { opacity }]}>
+            <Text style={styles.loadingMessageIcon}>{icon}</Text>
+            <Text style={[
+                styles.loadingMessageText,
+                isActive && styles.loadingMessageTextActive,
+            ]}>
+                {text}
+            </Text>
+            {isActive && (
+                <ActivityIndicator
+                    size="small"
+                    color={colors.accent}
+                    style={{ marginLeft: scale(8) }}
+                />
+            )}
+        </Animated.View>
+    );
+}
+
+// ─────────────────────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -333,6 +699,141 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: verticalScale(32),
     },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: verticalScale(12),
+        paddingHorizontal: spacing.lg,
+    },
+    statusText: {
+        fontSize: fontSize.lg,
+        color: colors.white,
+    },
+    debugText: {
+        fontSize: fontSize.sm,
+        color: colors.textLightAlpha,
+        textAlign: 'center',
+    },
+    errorEmoji: {
+        fontSize: scale(64),
+    },
+    errorButtonRow: {
+        flexDirection: 'row',
+        gap: scale(12),
+        marginTop: verticalScale(8),
+    },
+    goBackButton: {
+        backgroundColor: colors.premium,
+        paddingVertical: verticalScale(12),
+        paddingHorizontal: scale(32),
+        borderRadius: 12,
+    },
+    goBackButtonText: {
+        fontSize: fontSize.lg,
+        fontWeight: 'bold',
+        color: '#003366',
+    },
+
+    // ── Loading Screen ────────────────────────
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+    },
+    loadingBackButton: {
+        position: 'absolute',
+        top: verticalScale(16),
+        left: scale(16),
+        width: scale(48),
+        height: scale(48),
+        borderRadius: 24,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    loadingBackButtonText: {
+        fontSize: fontSize.xxxl,
+        color: colors.white,
+        fontWeight: 'bold',
+    },
+    loadingImageContainer: {
+        marginBottom: verticalScale(32),
+    },
+    loadingImageCircle: {
+        width: scale(160),
+        height: scale(160),
+        borderRadius: scale(80),
+        backgroundColor: 'rgba(252, 211, 77, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(252, 211, 77, 0.25)',
+    },
+    loadingImageEmoji: {
+        fontSize: scale(72),
+    },
+    loadingMessagesContainer: {
+        gap: verticalScale(16),
+        marginBottom: verticalScale(32),
+        alignItems: 'flex-start',
+        width: '100%',
+        paddingHorizontal: spacing.md,
+    },
+    loadingMessageRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: scale(12),
+    },
+    loadingMessageIcon: {
+        fontSize: scale(24),
+    },
+    loadingMessageText: {
+        fontSize: fontSize.lg,
+        color: 'rgba(255, 255, 255, 0.4)',
+        fontWeight: '500',
+    },
+    loadingMessageTextActive: {
+        color: colors.white,
+        fontWeight: 'bold',
+    },
+    progressBarContainer: {
+        width: '85%',
+        alignItems: 'center',
+        marginBottom: verticalScale(16),
+    },
+    progressBarBackground: {
+        width: '100%',
+        height: verticalScale(10),
+        borderRadius: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 5,
+    },
+    progressText: {
+        fontSize: fontSize.md,
+        color: colors.accent,
+        marginTop: verticalScale(8),
+        fontWeight: 'bold',
+    },
+    loadingStepText: {
+        fontSize: fontSize.md,
+        color: colors.textLightAlpha,
+        textAlign: 'center',
+        marginTop: verticalScale(4),
+    },
+    loadingHint: {
+        fontSize: fontSize.sm,
+        color: 'rgba(255, 255, 255, 0.3)',
+        marginTop: verticalScale(16),
+    },
+
+    // ── Image ─────────────────────────────────
     imageContainer: {
         width: '100%',
         height: verticalScale(480),
@@ -341,13 +842,19 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: '100%',
-        borderRadius: 12,
+    },
+    imagePlaceholder: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imagePlaceholderIcon: {
+        fontSize: scale(48),
     },
     imageOverlay: {
         position: 'absolute',
         width: '100%',
         height: '100%',
-        borderRadius: 12,
     },
     backButton: {
         position: 'absolute',
@@ -363,6 +870,7 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontSize: fontSize.xxxl,
         color: '#003366',
+        fontWeight: 'bold',
     },
     playButton: {
         position: 'absolute',
@@ -379,30 +887,34 @@ const styles = StyleSheet.create({
         fontSize: fontSize.xl,
         color: '#003366',
     },
+
+    // ── Content ───────────────────────────────
     title: {
         fontSize: fontSize.xxxl,
         fontWeight: 'bold',
         color: colors.white,
         textAlign: 'center',
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        lineHeight: verticalScale(45),
+        paddingTop: spacing.md,
+        lineHeight: verticalScale(42),
     },
     pageIndicator: {
         fontSize: fontSize.md,
-        color: colors.white,
+        color: colors.textLightAlpha,
         textAlign: 'center',
         paddingVertical: spacing.sm,
     },
     content: {
-        fontSize: fontSize.xl,
+        fontSize: fontSize.lg,
         color: colors.white,
+        lineHeight: verticalScale(32),
         textAlign: 'justify',
-        lineHeight: verticalScale(35),
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
     },
-    navigationRow: {
+
+    // ── Navigation ────────────────────────────
+    navRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.md,
@@ -413,7 +925,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.premium,
         borderRadius: 12,
-        paddingVertical: verticalScale(12),
+        paddingVertical: verticalScale(14),
         alignItems: 'center',
     },
     navButtonDisabled: {
@@ -428,20 +940,36 @@ const styles = StyleSheet.create({
     navButtonTextDisabled: {
         color: '#9CA3AF',
     },
-    actionRow: {
+
+    // ── Page Dots ─────────────────────────────
+    dotsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-evenly',
-        paddingHorizontal: spacing.md,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: scale(8),
         paddingVertical: spacing.sm,
-        gap: scale(12),
     },
+    dot: {
+        width: scale(8),
+        height: scale(8),
+        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    dotActive: {
+        backgroundColor: colors.premium,
+        width: scale(24),
+    },
+
+    // ── Save Button ───────────────────────────
     saveButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: colors.premium,
-        borderRadius: 12,
-        paddingVertical: verticalScale(12),
-        paddingHorizontal: scale(16),
+        borderRadius: 16,
+        paddingVertical: verticalScale(16),
+        marginHorizontal: spacing.md,
+        marginTop: spacing.md,
         gap: scale(8),
     },
     saveButtonIcon: {
@@ -452,16 +980,15 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#003366',
     },
-    homeButton: {
-        flex: 1,
-        backgroundColor: colors.premium,
-        borderRadius: 12,
-        paddingVertical: verticalScale(12),
+    savedBadge: {
         alignItems: 'center',
+        paddingVertical: verticalScale(12),
+        marginHorizontal: spacing.md,
+        marginTop: spacing.md,
     },
-    homeButtonText: {
-        fontSize: fontSize.lg,
-        fontWeight: 'bold',
-        color: '#003366',
+    savedBadgeText: {
+        fontSize: fontSize.md,
+        color: colors.accent,
+        fontWeight: '600',
     },
 });

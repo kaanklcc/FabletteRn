@@ -98,7 +98,7 @@ export default function PremiumScreen({ navigation }: Props) {
 
     // Random math question (memoized so it doesn't change on re-render)
     const mathQuestion = useMemo(() => {
-        const num1 = Math.floor(Math.random() * 41) + 10; // 10-50
+        const num1 = Math.floor(Math.random() * 10) + 10; // 10-50
         const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
         return { num1, num2, answer: num1 * num2 };
     }, []);

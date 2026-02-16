@@ -61,9 +61,9 @@ export default function HomeScreen({ navigation }: Props) {
     };
 
     const handleStoryPress = (storyId: string) => {
-        // Navigate to StoryViewer with storyId
-        console.log('Story pressed:', storyId);
-        navigation.navigate('StoryViewer', { storyId: `featured_${storyId}` });
+        // Navigate to StoryViewer with featured story ID
+        console.log('Featured story pressed:', storyId);
+        navigation.navigate('StoryViewer', { storyId });
     };
 
     // ─────────────────────────────────────────────────────────

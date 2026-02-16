@@ -41,6 +41,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../zustand/useAuthStore';
+import { useUserStore } from '../zustand/useUserStore';
 import { authKeys } from './queryKeys';
 
 // Use Cases
@@ -85,46 +86,35 @@ const logoutUseCase = new LogoutUseCase(authRepository);
 export const useLogin = () => {
     const queryClient = useQueryClient();
     const setUser = useAuthStore((state) => state.setUser);
+    const setUserData = useUserStore((state) => state.setUserData);
 
     return useMutation({
-        /**
-         * Mutation Function
-         * 
-         * Use case'i çağır.
-         */
         mutationFn: async (params: { email: string; password: string }) => {
             return await loginUseCase.invoke(params.email, params.password);
         },
 
-        /**
-         * Success Callback
-         * 
-         * Giriş başarılı olduğunda:
-         * 1. Zustand store'a kullanıcıyı kaydet
-         * 2. Auth cache'i invalidate et
-         */
         onSuccess: (user) => {
-            // Zustand store'a kaydet
             setUser(user);
 
-            // Cache'i invalidate et
+            // UserData store'u da güncelle
+            setUserData({
+                ad: user.firstName,
+                soyad: user.lastName,
+                email: user.email,
+                premium: user.isPremium,
+                premiumStartDate: user.premiumStartDate,
+                premiumDurationDays: user.premiumDurationDays,
+                remainingChatgptUses: user.remainingCredits,
+                usedFreeTrial: user.usedFreeTrial,
+            });
+
             queryClient.invalidateQueries({ queryKey: authKeys.currentUser() });
         },
 
-        /**
-         * Error Callback
-         * 
-         * Hata durumunda konsola yaz.
-         */
         onError: (error) => {
             console.error('Login error:', error);
         },
 
-        /**
-         * Retry Configuration
-         * 
-         * Hata durumunda 1 kez tekrar dene.
-         */
         retry: 1,
     });
 };
@@ -137,6 +127,7 @@ export const useLogin = () => {
 export const useRegister = () => {
     const queryClient = useQueryClient();
     const setUser = useAuthStore((state) => state.setUser);
+    const setUserData = useUserStore((state) => state.setUserData);
 
     return useMutation({
         mutationFn: async (params: {
@@ -153,6 +144,19 @@ export const useRegister = () => {
 
         onSuccess: (user) => {
             setUser(user);
+
+            // UserData store'u da güncelle (yeni kullanıcı varsayılan değerleri)
+            setUserData({
+                ad: user.firstName,
+                soyad: user.lastName,
+                email: user.email,
+                premium: false,
+                premiumStartDate: null,
+                premiumDurationDays: 0,
+                remainingChatgptUses: 0,
+                usedFreeTrial: true,
+            });
+
             queryClient.invalidateQueries({ queryKey: authKeys.currentUser() });
         },
 

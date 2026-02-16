@@ -18,7 +18,8 @@ import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CreateStackParamList } from '../../navigation/types';
+import { useNavigation } from '@react-navigation/native';
+import { CreateStackParamList, StoryGenerationParams } from '../../navigation/types';
 
 // Components
 import AccordionCard from '../../components/create/AccordionCard';
@@ -26,6 +27,10 @@ import ThemeButton from '../../components/create/ThemeButton';
 import LockedThemeButton from '../../components/create/LockedThemeButton';
 import InputCard from '../../components/create/InputCard';
 import SupportingCharactersList from '../../components/create/SupportingCharactersList';
+
+// Store
+import { useUserStore } from '@/store/zustand/useUserStore';
+import { useAuthStore } from '@/store/zustand/useAuthStore';
 
 // Config
 import { colors } from '@/config/theme';
@@ -73,14 +78,37 @@ export default function CreateStoryScreen({ navigation }: Props) {
     const [lengthExpanded, setLengthExpanded] = useState(false);
     const [supportingExpanded, setSupportingExpanded] = useState(false);
 
-    // Premium state (TODO: Get from Zustand)
-    // MOCK: Set to true for testing
-    const [isPremium] = useState(true);
-    const [usedFreeTrial] = useState(true);
+    // Premium state from Zustand
+    const { isPremium, remainingUses, userData } = useUserStore();
+    const { user } = useAuthStore();
+    const usedFreeTrial = userData?.usedFreeTrial ?? true;
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
     // ─────────────────────────────────────────────────────────
+    /**
+     * Kullanıcı erişim kontrolü
+     * DiscoveryBox2'deki AnasayfaViewModel.checkUserAccess() mantığı
+     */
+    const checkUserAccess = (): boolean => {
+        // Premium kullanıcılar ve hakkı olanlar geçebilir
+        if (isPremium && remainingUses > 0) {
+            return true;
+        }
+
+        // Premium değilse ama hakkı varsa geçebilir
+        if (!isPremium && remainingUses > 0) {
+            return true;
+        }
+
+        // İlk deneme hakkı
+        if (!usedFreeTrial) {
+            return true;
+        }
+
+        return false;
+    };
+
     const handleGenerateStory = () => {
         // Validation
         if (!topic.trim() || !location.trim() || !mainCharacter.trim()) {
@@ -98,28 +126,69 @@ export default function CreateStoryScreen({ navigation }: Props) {
             return;
         }
 
-        // Build prompt
+        // Auth check
+        if (!user) {
+            Alert.alert('Uyarı', 'Giriş yapmanız gerekiyor');
+            return;
+        }
+
+        // Premium/credit check
+        const canCreate = checkUserAccess();
+        if (!canCreate) {
+            Alert.alert(
+                'Hikaye Hakkınız Bitti',
+                'Hikaye oluşturmak için premium satın alın veya reklam izleyin.',
+                [
+                    { text: 'İptal', style: 'cancel' },
+                    {
+                        text: 'Premium Al',
+                        onPress: () => {
+                            // ProfileTab > Premium'a navigate et
+                            (navigation as any).navigate('ProfileTab', {
+                                screen: 'Premium',
+                                params: { source: 'create_story' },
+                            });
+                        },
+                    },
+                ]
+            );
+            return;
+        }
+
+        // Build prompt (DiscoveryBox2 Hikaye.kt'deki gibi)
         const supportingCharsText = supportingCharacters
             .filter((c) => c.trim())
             .join(', ');
 
+        const themeName = THEMES.find(t => t.id === selectedTheme)?.name || selectedTheme;
+
         const prompt = `Bana bir çocuk hikayesi yaz. 
-      Konu: ${topic}, 
-      Mekan: ${location}, 
-      Ana karakter: ${mainCharacter} (${mainCharacterTrait}), 
-      Yardımcı karakterler: ${supportingCharsText}, 
-      Tema: ${selectedTheme}, 
-      Uzunluk: ${selectedLength}.`;
+Konu: ${topic}, 
+Mekan: ${location}, 
+Ana karakter: ${mainCharacter} (${mainCharacterTrait || 'cesur'}), 
+Yardımcı karakterler: ${supportingCharsText || 'yok'}, 
+Tema: ${themeName}, 
+Uzunluk: ${selectedLength}. 
+ÖNEMLİ: Karakterlerin fiziksel görünümünü her sayfada tutarlı tut. Hikaye doğrudan başlasın.`;
 
-        console.log('Generating story:', prompt);
+        const generationParams: StoryGenerationParams = {
+            prompt,
+            length: selectedLength as 'short' | 'medium' | 'long',
+            mainCharacter,
+            location,
+            theme: themeName,
+            topic,
+        };
 
-        // Navigate to StoryViewer with mock story
-        navigation.navigate('StoryViewer', { storyId: 'mock_story_1' });
+        console.log('🚀 Starting story generation with params:', generationParams);
+
+        // Navigate to StoryViewer with generation params
+        navigation.navigate('StoryViewer', { generationParams });
     };
 
     const handleLengthPress = (lengthId: string) => {
-        // Check if locked
-        const isLocked = !isPremium && !usedFreeTrial && lengthId !== 'short';
+        // Orta ve Uzun hikayeler premium gerektirir (hakkı yoksa)
+        const isLocked = !isPremium && lengthId !== 'short';
 
         if (isLocked) {
             Alert.alert(
@@ -127,7 +196,15 @@ export default function CreateStoryScreen({ navigation }: Props) {
                 'Bu uzunluk için premium üyelik gereklidir',
                 [
                     { text: 'İptal', style: 'cancel' },
-                    { text: 'Premium Al', onPress: () => console.log('Navigate to Premium') },
+                    {
+                        text: 'Premium Al',
+                        onPress: () => {
+                            (navigation as any).navigate('ProfileTab', {
+                                screen: 'Premium',
+                                params: { source: 'create_story_length' },
+                            });
+                        },
+                    },
                 ]
             );
             return;
@@ -222,7 +299,7 @@ export default function CreateStoryScreen({ navigation }: Props) {
                         onExpandChange={() => setLengthExpanded(!lengthExpanded)}>
                         <View style={styles.lengthRow}>
                             {LENGTHS.map((length) => {
-                                const isLocked = !isPremium && !usedFreeTrial && length.id !== 'short';
+                                const isLocked = !isPremium && length.id !== 'short';
                                 return (
                                     <View key={length.id} style={styles.lengthButtonWrapper}>
                                         <LockedThemeButton
