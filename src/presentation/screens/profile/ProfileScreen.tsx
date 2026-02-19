@@ -25,6 +25,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native';
 import { ProfileStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,6 +41,8 @@ import { useAuthStore } from '@/store/zustand/useAuthStore';
 import { useUserStore } from '@/store/zustand/useUserStore';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/common/LanguageSwitcher';
+import { UserRepositoryImpl } from '@/data/repositories/UserRepositoryImpl';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
     ProfileStackParamList,
@@ -65,29 +68,13 @@ export default function ProfileScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
     const [showTermsOfUse, setShowTermsOfUse] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
     // ─────────────────────────────────────────────────────────
     const handleUpgrade = () => {
         navigation.navigate('Premium', { source: 'profile' });
-    };
-
-    const handleLogout = () => {
-        Alert.alert(
-            t('profile.logoutTitle'),
-            t('profile.logoutMessage'),
-            [
-                { text: t('common.no'), style: 'cancel' },
-                {
-                    text: t('common.yes'),
-                    onPress: () => {
-                        // TODO: Firebase sign out
-                        console.log('Logout');
-                    },
-                },
-            ]
-        );
     };
 
     const handleDeleteAccount = () => {
@@ -99,9 +86,38 @@ export default function ProfileScreen({ navigation }: Props) {
                 {
                     text: t('common.delete'),
                     style: 'destructive',
-                    onPress: () => {
-                        // TODO: Delete from Firebase + Firestore
-                        console.log('Delete account');
+                    onPress: async () => {
+                        const userId = user?.uid;
+                        if (!userId) return;
+
+                        setIsDeleting(true);
+                        try {
+                            const repo = new UserRepositoryImpl();
+                            await repo.deleteAccount(userId);
+
+                            // Zustand store'ları temizle
+                            useAuthStore.getState().setUser(null as any);
+                            useUserStore.getState().setUserData(null as any);
+
+                            // Onboarding flag'ını sıfırla
+                            await AsyncStorage.removeItem('hasSeenOnboarding');
+
+                            // Navigation stack'i tamamen sıfırlayıp Auth'a yönlendir
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: 'Auth' as any }],
+                                })
+                            );
+                        } catch (error: any) {
+                            console.error('Delete account error:', error);
+                            Alert.alert(
+                                t('common.error'),
+                                error?.message || 'Hesap silinirken bir hata oluştu'
+                            );
+                        } finally {
+                            setIsDeleting(false);
+                        }
                     },
                 },
             ]
@@ -148,8 +164,7 @@ export default function ProfileScreen({ navigation }: Props) {
                         />
                     </View>
 
-                    {/* User Name */}
-                    <Text style={styles.userName}>{userName}</Text>
+
 
                     {/* Premium Status Card */}
                     <TouchableOpacity
@@ -211,22 +226,16 @@ export default function ProfileScreen({ navigation }: Props) {
                         </View>
                     </View>
 
-                    {/* Logout Button */}
-                    <TouchableOpacity
-                        style={styles.logoutButton}
-                        onPress={handleLogout}
-                        activeOpacity={0.8}>
-                        <Ionicons name="exit-outline" size={scale(24)} color="#003366" />
-                        <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
-                    </TouchableOpacity>
-
                     {/* Delete Account Button */}
                     <TouchableOpacity
-                        style={styles.deleteButton}
+                        style={[styles.deleteButton, isDeleting && { opacity: 0.6 }]}
                         onPress={handleDeleteAccount}
+                        disabled={isDeleting}
                         activeOpacity={0.8}>
                         <Ionicons name="trash-outline" size={scale(24)} color={colors.white} />
-                        <Text style={styles.deleteButtonText}>{t('profile.deleteAccount')}</Text>
+                        <Text style={styles.deleteButtonText}>
+                            {isDeleting ? t('common.loading') : t('profile.deleteAccount')}
+                        </Text>
                     </TouchableOpacity>
                 </ScrollView>
             </LinearGradient>
@@ -364,20 +373,6 @@ const styles = StyleSheet.create({
         fontSize: fontSize.xs,
         color: 'rgba(255, 255, 255, 0.9)',
         lineHeight: verticalScale(16),
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FCD34D',
-        borderRadius: 16,
-        paddingVertical: verticalScale(16),
-        gap: scale(8),
-    },
-    logoutButtonText: {
-        fontSize: fontSize.md,
-        fontWeight: 'bold',
-        color: '#003366',
     },
     deleteButton: {
         flexDirection: 'row',
