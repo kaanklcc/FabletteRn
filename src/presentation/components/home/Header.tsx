@@ -16,6 +16,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
     isPremium: boolean;
@@ -24,6 +25,7 @@ interface HeaderProps {
 }
 
 export default function Header({ isPremium, remainingPremiumUses, onPremiumPress }: HeaderProps) {
+    const { t } = useTranslation();
     // ─────────────────────────────────────────────────────────
     // ANIMATION (Scale effect)
     // ─────────────────────────────────────────────────────────
@@ -50,8 +52,8 @@ export default function Header({ isPremium, remainingPremiumUses, onPremiumPress
         <View style={styles.container}>
             {/* Left: Title & Subtitle */}
             <View style={styles.leftSection}>
-                <Text style={styles.title}>Taleteller</Text>
-                <Text style={styles.subtitle}>AI Story Friend</Text>
+                <Text style={styles.title}>Fablette</Text>
+                <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
             </View>
 
             {/* Right: Premium Button */}

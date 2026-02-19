@@ -13,10 +13,13 @@
 
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing, isSmallDevice } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 export default function MascotSection() {
+    const { t } = useTranslation();
     const mascotSize = isSmallDevice ? 60 : 80;
     const badgeSize = isSmallDevice ? 20 : 24;
 
@@ -25,20 +28,23 @@ export default function MascotSection() {
             {/* Mascot Avatar */}
             <View style={styles.avatarContainer}>
                 <View style={[styles.avatar, { width: mascotSize, height: mascotSize }]}>
-                    {/* Placeholder - gerçek image eklenecek */}
-                    <Text style={styles.avatarPlaceholder}>🐱</Text>
+                    <Image
+                        source={require('../../../../assets/parskedi.png')}
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 {/* Pencil Badge */}
                 <View style={[styles.badge, { width: badgeSize, height: badgeSize }]}>
-                    <Text style={styles.badgeIcon}>✏️</Text>
+                    <Ionicons name="pencil-outline" size={badgeSize * 0.6} color="#003366" />
                 </View>
             </View>
 
             {/* Speech Bubble */}
             <View style={styles.speechBubble}>
                 <Text style={styles.welcomeText}>
-                    Hoş geldin küçük hikaye anlatıcısı! 🌟
+                    {t('home.welcome')}
                 </Text>
             </View>
         </View>
@@ -62,8 +68,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         overflow: 'hidden',
     },
-    avatarPlaceholder: {
-        fontSize: fontSize.xxxl,
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     badge: {
         position: 'absolute',

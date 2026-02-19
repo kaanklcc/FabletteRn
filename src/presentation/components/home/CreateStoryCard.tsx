@@ -15,14 +15,17 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 interface CreateStoryCardProps {
     onPress: () => void;
 }
 
 export default function CreateStoryCard({ onPress }: CreateStoryCardProps) {
+    const { t } = useTranslation();
     // ─────────────────────────────────────────────────────────
     // ANIMATION
     // ─────────────────────────────────────────────────────────
@@ -55,19 +58,19 @@ export default function CreateStoryCard({ onPress }: CreateStoryCardProps) {
                     style={styles.gradient}>
                     {/* Header Row */}
                     <View style={styles.headerRow}>
-                        <Text style={styles.bookIcon}>📚</Text>
-                        <Text style={styles.pencilIcon}>✏️</Text>
+                        <Ionicons name="book-outline" size={scale(32)} color={colors.white} />
+                        <Ionicons name="pencil-outline" size={scale(28)} color={colors.white} />
                     </View>
 
                     {/* Title & Subtitle */}
-                    <Text style={styles.title}>Hikaye Oluşturmaya Başla</Text>
+                    <Text style={styles.title}>{t('home.createTitle')}</Text>
                     <Text style={styles.subtitle}>
-                        Hikayeni sen belirle, biz sana yardımcı olalım
+                        {t('home.createSubtitle')}
                     </Text>
 
                     {/* CTA Button */}
                     <TouchableOpacity style={styles.ctaButton} onPress={onPress}>
-                        <Text style={styles.ctaButtonText}>Sihirli Hikaye Oluştur</Text>
+                        <Text style={styles.ctaButtonText}>{t('home.createCta')}</Text>
                     </TouchableOpacity>
                 </LinearGradient>
             </TouchableOpacity>
@@ -89,12 +92,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: verticalScale(12),
-    },
-    bookIcon: {
-        fontSize: fontSize.xxxl,
-    },
-    pencilIcon: {
-        fontSize: fontSize.xl,
     },
     title: {
         fontSize: fontSize.xxl,

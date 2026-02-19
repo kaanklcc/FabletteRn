@@ -12,24 +12,26 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 // Config
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 interface EmptyStoriesStateProps {
     onCreateStory: () => void;
 }
 
 export default function EmptyStoriesState({ onCreateStory }: EmptyStoriesStateProps) {
+    const { t } = useTranslation();
     return (
         <View style={styles.container}>
             <Text style={styles.emoji}>📚</Text>
-            <Text style={styles.message}>Henüz kaydedilmiş hikaye yok</Text>
+            <Text style={styles.message}>{t('saved.emptyTitle')}</Text>
             <Text style={styles.subtitle}>
-                İlk hikayeni oluştur ve buradan tekrar oku!
+                {t('saved.emptySubtitle')}
             </Text>
             <TouchableOpacity
                 style={styles.button}
                 onPress={onCreateStory}
                 activeOpacity={0.8}>
-                <Text style={styles.buttonText}>Hikaye Oluştur</Text>
+                <Text style={styles.buttonText}>{t('saved.createButton')}</Text>
             </TouchableOpacity>
         </View>
     );

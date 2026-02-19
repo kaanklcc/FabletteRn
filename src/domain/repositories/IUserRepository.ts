@@ -31,7 +31,8 @@ export interface IUserRepository {
     updatePremiumStatus(
         userId: string,
         isPremium: boolean,
-        durationDays: number
+        durationDays: number,
+        remainingCredits?: number
     ): Promise<void>;
 
     /**
@@ -41,6 +42,14 @@ export interface IUserRepository {
      * @returns Promise<void>
      */
     decrementCredits(userId: string): Promise<void>;
+
+    /**
+     * Premium süresini kapat (expire olduğunda)
+     * 
+     * @param userId - Kullanıcı ID
+     * @returns Promise<void>
+     */
+    expirePremium(userId: string): Promise<void>;
 
     /**
      * Kullanıcı verilerini kaydet (ilk kayıt)
@@ -57,4 +66,12 @@ export interface IUserRepository {
         lastName: string,
         email: string
     ): Promise<void>;
+
+    /**
+     * Hesabı tamamen sil: Firestore verisi + Firebase Auth kullanıcısı
+     *
+     * @param userId - Kullanıcı ID
+     * @returns Promise<void>
+     */
+    deleteAccount(userId: string): Promise<void>;
 }
