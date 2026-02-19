@@ -12,6 +12,8 @@
  * 4. Her sayfa için OpenAI TTS ile ses oluştur → Dosyaya kaydet
  * 5. Krediyi düşür
  * 6. Tüm adımlar tamamlanınca hikayeyi göster
+ * 
+ * MOCK MODE: Set USE_MOCK_DATA = true to bypass API calls for testing
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -22,6 +24,12 @@ import { StoryGenerationParams } from '@/presentation/navigation/types';
 import { StoryPage } from '@/domain/entities/StoryPage';
 import { cloudFunctionsService } from '@/data/datasources/CloudFunctionsService';
 import { STORY_GENERATION, TTS_CONFIG } from '@/config/constants';
+import { getMockStoryWithImages } from '@/data/mock/mockStoryData';
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK MODE - Set to true to use mock data instead of API calls
+// ═══════════════════════════════════════════════════════════════
+const USE_MOCK_DATA = true;
 
 // ─────────────────────────────────────────────────────────
 // TYPES
@@ -118,7 +126,7 @@ async function uploadImageToStorage(
     await uploadBytes(storageRef, blob);
 
     // 4. Temp dosyayı temizle
-    await FileSystem.deleteAsync(tempFilePath, { idempotent: true }).catch(() => {});
+    await FileSystem.deleteAsync(tempFilePath, { idempotent: true }).catch(() => { });
 
     // 5. Download URL'i al
     const downloadURL = await getDownloadURL(storageRef);
@@ -157,6 +165,119 @@ export function useStoryGeneration() {
             return;
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // MOCK MODE - Simulate story generation for testing
+        // ═══════════════════════════════════════════════════════════════
+        if (USE_MOCK_DATA) {
+            try {
+                console.log('🎭 MOCK MODE: Simulating story generation...');
+
+                // Step 1: Generating text (0-20%)
+                updateState({
+                    status: 'generating_text',
+                    progress: 5,
+                    currentStep: 'Yeni bir dünya yaratılıyor...',
+                    error: null,
+                    story: null,
+                });
+                await new Promise(r => setTimeout(r, 2000));
+                if (abortRef.current) return;
+
+                // Step 2: Generating images (20-60%)
+                updateState({
+                    status: 'generating_images',
+                    progress: 20,
+                    currentStep: 'Karakterler canlandırılıyor...',
+                    imageProgress: { current: 0, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 1000));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 35,
+                    imageProgress: { current: 1, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 1000));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 50,
+                    imageProgress: { current: 2, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 1000));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 60,
+                    currentStep: 'Sesler duyulmaya başlanıyor...',
+                    imageProgress: { current: 3, total: 3 },
+                });
+
+                // Step 3: Generating audio (60-90%)
+                updateState({
+                    status: 'generating_audio',
+                    progress: 65,
+                    currentStep: 'Sese dönüştürülüyor...',
+                    audioProgress: { current: 0, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 800));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 75,
+                    audioProgress: { current: 1, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 800));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 85,
+                    audioProgress: { current: 2, total: 3 },
+                });
+                await new Promise(r => setTimeout(r, 800));
+                if (abortRef.current) return;
+
+                updateState({
+                    progress: 90,
+                    audioProgress: { current: 3, total: 3 },
+                });
+
+                // Step 4: Finalizing (90-100%)
+                updateState({
+                    status: 'finalizing',
+                    progress: 95,
+                    currentStep: 'Hikaye tamamlanıyor...',
+                });
+                await new Promise(r => setTimeout(r, 1000));
+                if (abortRef.current) return;
+
+                // Complete - Return mock story
+                const mockStory = getMockStoryWithImages();
+                console.log('✅ MOCK MODE: Story generation complete!');
+
+                updateState({
+                    status: 'complete',
+                    progress: 100,
+                    currentStep: 'Hikaye hazır!',
+                    story: mockStory,
+                });
+
+            } catch (error: any) {
+                console.error('❌ MOCK MODE: Error:', error);
+                updateState({
+                    status: 'error',
+                    error: error.message || 'Mock hikaye oluşturulurken bir hata oluştu',
+                    currentStep: '',
+                });
+            } finally {
+                isGeneratingRef.current = false;
+            }
+            return;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // REAL MODE - Actual API calls
+        // ═══════════════════════════════════════════════════════════════
         try {
             // ═══ STEP 1: Metin oluştur (Gemini) ═══
             updateState({

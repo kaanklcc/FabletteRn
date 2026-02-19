@@ -27,6 +27,7 @@ import ThemeButton from '../../components/create/ThemeButton';
 import LockedThemeButton from '../../components/create/LockedThemeButton';
 import InputCard from '../../components/create/InputCard';
 import SupportingCharactersList from '../../components/create/SupportingCharactersList';
+import { Ionicons } from '@expo/vector-icons';
 
 // Store
 import { useUserStore } from '@/store/zustand/useUserStore';
@@ -35,6 +36,7 @@ import { useAuthStore } from '@/store/zustand/useAuthStore';
 // Config
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 type CreateStoryScreenNavigationProp = NativeStackNavigationProp<
     CreateStackParamList,
@@ -45,20 +47,20 @@ interface Props {
     navigation: CreateStoryScreenNavigationProp;
 }
 
-// Themes
-const THEMES = [
-    { id: 'adventure', name: 'Macera', icon: '🚀', color: '#EC4899' },
-    { id: 'love', name: 'Aşk', icon: '💖', color: '#06B6D4' },
-    { id: 'friendship', name: 'Dostluk', icon: '🧑‍🤝‍🧑', color: '#10B981' },
-    { id: 'family', name: 'Aile', icon: '🏡', color: '#0055AA' },
-    { id: 'action', name: 'Aksiyon', icon: '⚡', color: '#F59E0B' },
+// Theme/Length data (icons and colors only — names come from t())
+const THEME_DATA = [
+    { id: 'adventure', key: 'adventure', icon: '🚀', color: '#EC4899' },
+    { id: 'love', key: 'love', icon: '💖', color: '#06B6D4' },
+    { id: 'friendship', key: 'friendship', icon: '🧑‍🤝‍🧑', color: '#10B981' },
+    { id: 'family', key: 'family', icon: '🏡', color: '#0055AA' },
+    { id: 'action', key: 'action', icon: '⚡', color: '#F59E0B' },
+    { id: 'scifi', key: 'scifi', icon: '🤖', color: '#8B5CF6' },
 ];
 
-// Story Lengths
-const LENGTHS = [
-    { id: 'short', name: 'Kısa', icon: '📄', color: '#EC4899' },
-    { id: 'medium', name: 'Orta', icon: '📕', color: '#0055AA' },
-    { id: 'long', name: 'Uzun', icon: '📚', color: '#06B6D4' },
+const LENGTH_DATA = [
+    { id: 'short', key: 'short', icon: '📄', color: '#EC4899' },
+    { id: 'medium', key: 'medium', icon: '📕', color: '#0055AA' },
+    { id: 'long', key: 'long', icon: '📚', color: '#06B6D4' },
 ];
 
 export default function CreateStoryScreen({ navigation }: Props) {
@@ -82,6 +84,11 @@ export default function CreateStoryScreen({ navigation }: Props) {
     const { isPremium, remainingUses, userData } = useUserStore();
     const { user } = useAuthStore();
     const usedFreeTrial = userData?.usedFreeTrial ?? true;
+    const { t } = useTranslation();
+
+    // Build localized names
+    const THEMES = THEME_DATA.map(td => ({ ...td, name: t(`create.themes.${td.key}`) }));
+    const LENGTHS = LENGTH_DATA.map(ld => ({ ...ld, name: t(`create.lengths.${ld.key}`) }));
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
@@ -112,46 +119,33 @@ export default function CreateStoryScreen({ navigation }: Props) {
     const handleGenerateStory = () => {
         // Validation
         if (!topic.trim() || !location.trim() || !mainCharacter.trim()) {
-            Alert.alert('Uyarı', 'Lütfen tüm alanları doldurun');
+            Alert.alert(t('common.warning'), t('create.validation.fillFields'));
             return;
         }
 
         if (!selectedTheme) {
-            Alert.alert('Uyarı', 'Lütfen bir tema seçin');
+            Alert.alert(t('common.warning'), t('create.validation.selectTheme'));
             return;
         }
 
         if (!selectedLength) {
-            Alert.alert('Uyarı', 'Lütfen hikaye uzunluğu seçin');
+            Alert.alert(t('common.warning'), t('create.validation.selectLength'));
             return;
         }
 
         // Auth check
         if (!user) {
-            Alert.alert('Uyarı', 'Giriş yapmanız gerekiyor');
+            Alert.alert(t('common.warning'), t('create.validation.loginRequired'));
             return;
         }
 
-        // Premium/credit check
+        // Premium/credit check — direkt Premium ekranına yönlendir
         const canCreate = checkUserAccess();
         if (!canCreate) {
-            Alert.alert(
-                'Hikaye Hakkınız Bitti',
-                'Hikaye oluşturmak için premium satın alın veya reklam izleyin.',
-                [
-                    { text: 'İptal', style: 'cancel' },
-                    {
-                        text: 'Premium Al',
-                        onPress: () => {
-                            // ProfileTab > Premium'a navigate et
-                            (navigation as any).navigate('ProfileTab', {
-                                screen: 'Premium',
-                                params: { source: 'create_story' },
-                            });
-                        },
-                    },
-                ]
-            );
+            (navigation as any).navigate('ProfileTab', {
+                screen: 'Premium',
+                params: { source: 'create_story' },
+            });
             return;
         }
 
@@ -160,7 +154,7 @@ export default function CreateStoryScreen({ navigation }: Props) {
             .filter((c) => c.trim())
             .join(', ');
 
-        const themeName = THEMES.find(t => t.id === selectedTheme)?.name || selectedTheme;
+        const themeName = THEMES.find(tm => tm.id === selectedTheme)?.name || selectedTheme;
 
         const prompt = `Bana bir çocuk hikayesi yaz. 
 Konu: ${topic}, 
@@ -191,22 +185,10 @@ Uzunluk: ${selectedLength}.
         const isLocked = !isPremium && lengthId !== 'short';
 
         if (isLocked) {
-            Alert.alert(
-                'Premium Gerekli',
-                'Bu uzunluk için premium üyelik gereklidir',
-                [
-                    { text: 'İptal', style: 'cancel' },
-                    {
-                        text: 'Premium Al',
-                        onPress: () => {
-                            (navigation as any).navigate('ProfileTab', {
-                                screen: 'Premium',
-                                params: { source: 'create_story_length' },
-                            });
-                        },
-                    },
-                ]
-            );
+            (navigation as any).navigate('ProfileTab', {
+                screen: 'Premium',
+                params: { source: 'create_story_length' },
+            });
             return;
         }
 
@@ -230,10 +212,10 @@ Uzunluk: ${selectedLength}.
                     </TouchableOpacity>
                     <View style={styles.headerCenter}>
                         <View style={styles.headerTitleRow}>
-                            <Text style={styles.headerIcon}>✏️</Text>
-                            <Text style={styles.headerTitle}>Hikayeni Oluştur</Text>
+                            <Ionicons name="pencil-outline" size={scale(24)} color={colors.white} style={{ marginRight: scale(8) }} />
+                            <Text style={styles.headerTitle}>{t('create.headerTitle')}</Text>
                         </View>
-                        <Text style={styles.headerSubtitle}>Hayal gücün yaşasın</Text>
+                        <Text style={styles.headerSubtitle}>{t('create.headerSubtitle')}</Text>
                     </View>
                     <View style={styles.headerRight} />
                 </View>
@@ -244,8 +226,8 @@ Uzunluk: ${selectedLength}.
                     showsVerticalScrollIndicator={false}>
                     {/* Theme Section */}
                     <AccordionCard
-                        title="Tema"
-                        subtitle={selectedTheme || 'Tema seç'}
+                        title={t('create.themeTitle')}
+                        subtitle={selectedTheme ? THEMES.find(tm => tm.id === selectedTheme)?.name || '' : t('create.themeSubtitle')}
                         icon="🎨"
                         expanded={themeExpanded}
                         onExpandChange={() => setThemeExpanded(!themeExpanded)}>
@@ -276,8 +258,8 @@ Uzunluk: ${selectedLength}.
                                     </View>
                                 ))}
                             </View>
-                            <View style={styles.themeRowCenter}>
-                                <View style={styles.themeButtonWrapperHalf}>
+                            <View style={styles.themeRow}>
+                                <View style={styles.themeButtonWrapper}>
                                     <ThemeButton
                                         text={THEMES[4].name}
                                         icon={THEMES[4].icon}
@@ -286,14 +268,23 @@ Uzunluk: ${selectedLength}.
                                         onPress={() => setSelectedTheme(THEMES[4].id)}
                                     />
                                 </View>
+                                <View style={styles.themeButtonWrapper}>
+                                    <ThemeButton
+                                        text={THEMES[5].name}
+                                        icon={THEMES[5].icon}
+                                        color={THEMES[5].color}
+                                        selected={selectedTheme === THEMES[5].id}
+                                        onPress={() => setSelectedTheme(THEMES[5].id)}
+                                    />
+                                </View>
                             </View>
                         </View>
                     </AccordionCard>
 
                     {/* Story Length Section */}
                     <AccordionCard
-                        title="Hikaye Uzunluğu"
-                        subtitle={selectedLength || 'Uzunluk seç'}
+                        title={t('create.lengthTitle')}
+                        subtitle={selectedLength ? LENGTHS.find(l => l.id === selectedLength)?.name || '' : t('create.lengthSubtitle')}
                         icon="📚"
                         expanded={lengthExpanded}
                         onExpandChange={() => setLengthExpanded(!lengthExpanded)}>
@@ -318,26 +309,26 @@ Uzunluk: ${selectedLength}.
 
                     {/* Topic */}
                     <InputCard
-                        title="Konu"
+                        title={t('create.topicTitle')}
                         icon="💡"
-                        placeholder="Örn: Uzay macerası"
+                        placeholder={t('create.topicPlaceholder')}
                         value={topic}
                         onChangeText={setTopic}
                     />
 
                     {/* Main Character */}
                     <InputCard
-                        title="Ana Karakter"
+                        title={t('create.mainCharacterTitle')}
                         icon="🦸"
-                        placeholder="Örn: Cesur bir astronot"
+                        placeholder={t('create.mainCharacterPlaceholder')}
                         value={mainCharacter}
                         onChangeText={setMainCharacter}
                     />
 
                     {/* Supporting Characters */}
                     <AccordionCard
-                        title="Yardımcı Karakterler"
-                        subtitle="Karakter ekle"
+                        title={t('create.supportingTitle')}
+                        subtitle={t('create.supportingSubtitle')}
                         icon="👥"
                         expanded={supportingExpanded}
                         onExpandChange={() => setSupportingExpanded(!supportingExpanded)}>
@@ -349,18 +340,18 @@ Uzunluk: ${selectedLength}.
 
                     {/* Location */}
                     <InputCard
-                        title="Mekan"
+                        title={t('create.locationTitle')}
                         icon="📍"
-                        placeholder="Örn: Uzak bir galaksi"
+                        placeholder={t('create.locationPlaceholder')}
                         value={location}
                         onChangeText={setLocation}
                     />
 
                     {/* Character Trait */}
                     <InputCard
-                        title="Ana Karakter Özelliği"
+                        title={t('create.traitTitle')}
                         icon="⭐"
-                        placeholder="Örn: Cesur ve meraklı"
+                        placeholder={t('create.traitPlaceholder')}
                         value={mainCharacterTrait}
                         onChangeText={setMainCharacterTrait}
                     />
@@ -370,8 +361,8 @@ Uzunluk: ${selectedLength}.
                         style={styles.generateButton}
                         onPress={handleGenerateStory}
                         activeOpacity={0.8}>
-                        <Text style={styles.generateButtonIcon}>✏️</Text>
-                        <Text style={styles.generateButtonText}>Hikayeyi Oluştur</Text>
+                        <Ionicons name="pencil-outline" size={scale(24)} color={colors.premiumText} style={{ marginRight: scale(8) }} />
+                        <Text style={styles.generateButtonText}>{t('create.generateButton')}</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </LinearGradient>

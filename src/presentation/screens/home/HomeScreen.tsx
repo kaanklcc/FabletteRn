@@ -27,6 +27,9 @@ import MascotSection from '../../components/home/MascotSection';
 import CreateStoryCard from '../../components/home/CreateStoryCard';
 import FeaturedStories from '../../components/home/FeaturedStories';
 
+// Store
+import { useUserStore } from '@/store/zustand/useUserStore';
+
 // Config
 import { colors } from '@/config/theme';
 
@@ -43,21 +46,24 @@ export default function HomeScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     // STATE
     // ─────────────────────────────────────────────────────────
-    const [isPremium] = useState(false); // TODO: Get from Zustand
-    const [remainingPremiumUses] = useState(0); // TODO: Get from Firestore
+    const { isPremium, remainingUses } = useUserStore();
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
     // ─────────────────────────────────────────────────────────
     const handlePremiumPress = () => {
-        // TODO: Navigate to Premium screen
-        console.log('Premium button pressed');
+        // Navigate to Premium screen in ProfileTab
+        (navigation as any).navigate('ProfileTab', {
+            screen: 'Premium',
+            params: { source: 'home_header' },
+        });
     };
 
     const handleCreateStoryPress = () => {
         // Navigate to CreateStory tab
-        console.log('Create story pressed - Navigate to CreateTab');
-        // TODO: Switch to CreateTab
+        (navigation as any).navigate('CreateTab', {
+            screen: 'CreateStory',
+        });
     };
 
     const handleStoryPress = (storyId: string) => {
@@ -83,7 +89,7 @@ export default function HomeScreen({ navigation }: Props) {
                     {/* Header */}
                     <Header
                         isPremium={isPremium}
-                        remainingPremiumUses={remainingPremiumUses}
+                        remainingPremiumUses={remainingUses}
                         onPremiumPress={handlePremiumPress}
                     />
 

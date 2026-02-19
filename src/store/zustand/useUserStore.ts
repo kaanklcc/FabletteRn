@@ -79,7 +79,7 @@ interface UserDataState {
      * @param isPremium - Premium durumu
      * @param durationDays - Premium süre (gün)
      */
-    updatePremiumStatus: (isPremium: boolean, durationDays?: number) => void;
+    updatePremiumStatus: (isPremium: boolean, durationDays?: number, credits?: number) => void;
 
     /**
      * Store'u temizle
@@ -150,9 +150,11 @@ export const useUserStore = create<UserDataState>((set, get) => ({
      * Kotlin karşılığı:
      * Premium satın alma sonrası Firestore güncelleme
      */
-    updatePremiumStatus: (isPremium, durationDays = 30) => {
+    updatePremiumStatus: (isPremium, durationDays = 30, credits?: number) => {
         const { userData } = get();
         if (!userData) return;
+
+        const newCredits = credits ?? userData.remainingChatgptUses;
 
         set({
             userData: {
@@ -160,10 +162,10 @@ export const useUserStore = create<UserDataState>((set, get) => ({
                 premium: isPremium,
                 premiumDurationDays: durationDays,
                 premiumStartDate: isPremium ? new Date() : null,
-                remainingChatgptUses: isPremium ? 1000 : userData.remainingChatgptUses,
+                remainingChatgptUses: newCredits,
             },
             isPremium,
-            remainingUses: isPremium ? 1000 : userData.remainingChatgptUses,
+            remainingUses: newCredits,
         });
     },
 

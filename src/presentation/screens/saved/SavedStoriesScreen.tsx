@@ -40,6 +40,7 @@ import { useStories, useDeleteStory } from '@/presentation/hooks/useStories';
 // Config
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 type SavedStoriesScreenNavigationProp = NativeStackNavigationProp<
     SavedStackParamList,
@@ -56,6 +57,7 @@ export default function SavedStoriesScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     const { data: stories = [], isLoading, error } = useStories();
     const deleteStory = useDeleteStory();
+    const { t } = useTranslation();
 
     // ─────────────────────────────────────────────────────────
     // HANDLERS
@@ -66,17 +68,17 @@ export default function SavedStoriesScreen({ navigation }: Props) {
 
     const handleDeleteStory = (storyId: string) => {
         Alert.alert(
-            'Hikayeyi Sil',
-            'Bu hikayeyi silmek istediğinize emin misiniz?',
+            t('saved.deleteTitle'),
+            t('saved.deleteMessage'),
             [
-                { text: 'İptal', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Sil',
+                    text: t('common.delete'),
                     style: 'destructive',
                     onPress: () => {
                         deleteStory.mutate(storyId, {
                             onError: (error) => {
-                                Alert.alert('Hata', 'Hikaye silinemedi');
+                                Alert.alert(t('common.error'), t('saved.deleteError'));
                                 console.error('Delete error:', error);
                             },
                         });
@@ -114,17 +116,20 @@ export default function SavedStoriesScreen({ navigation }: Props) {
                                     color={colors.white}
                                 />
                             </TouchableOpacity>
-                            <Ionicons
-                                name="star"
-                                size={scale(24)}
-                                color={colors.white}
-                                style={styles.starIcon}
-                            />
-                            <Text style={styles.headerTitle}>Hikaye Koleksiyonum</Text>
+                            <View style={styles.titleContainer}>
+                                <View style={styles.titleRow}>
+                                    <Ionicons
+                                        name="star"
+                                        size={scale(24)}
+                                        color={colors.white}
+                                    />
+                                    <Text style={styles.headerTitle}>{t('saved.title')}</Text>
+                                </View>
+                                <Text style={styles.headerSubtitle}>
+                                    {t('saved.storySaved', { count: stories.length })}
+                                </Text>
+                            </View>
                         </View>
-                        <Text style={styles.headerSubtitle}>
-                            {stories.length} sihirli hikaye kaydedildi
-                        </Text>
                     </View>
                 </LinearGradient>
 
@@ -135,13 +140,13 @@ export default function SavedStoriesScreen({ navigation }: Props) {
                     {isLoading ? (
                         <View style={styles.centerContainer}>
                             <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={styles.loadingText}>Hikayeler yükleniyor...</Text>
+                            <Text style={styles.loadingText}>{t('saved.loading')}</Text>
                         </View>
                     ) : error ? (
                         <View style={styles.centerContainer}>
                             <Ionicons name="alert-circle" size={scale(48)} color={colors.error} />
-                            <Text style={styles.errorText}>Hikayeler yüklenemedi</Text>
-                            <Text style={styles.errorSubtext}>Lütfen tekrar deneyin</Text>
+                            <Text style={styles.errorText}>{t('saved.errorTitle')}</Text>
+                            <Text style={styles.errorSubtext}>{t('saved.errorSubtitle')}</Text>
                         </View>
                     ) : stories.length === 0 ? (
                         <EmptyStoriesState onCreateStory={handleCreateStory} />
@@ -180,22 +185,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#003366',
     },
     header: {
-        paddingTop: verticalScale(20),
-        paddingBottom: verticalScale(20),
+        paddingTop: verticalScale(12),
+        paddingBottom: verticalScale(12),
         paddingHorizontal: spacing.md,
     },
     headerContent: {
-        gap: verticalScale(4),
+        // No extra gap needed
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: verticalScale(4),
     },
     backButton: {
         marginRight: scale(8),
     },
-    starIcon: {
-        marginRight: scale(8),
+    titleContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: scale(8),
     },
     headerTitle: {
         fontSize: fontSize.xl,
@@ -205,7 +217,7 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: fontSize.sm,
         color: 'rgba(255, 255, 255, 0.9)',
-        marginLeft: scale(56), // Align with title (back button + star icon + spacing)
+        marginTop: verticalScale(2),
     },
     gradient: {
         flex: 1,
