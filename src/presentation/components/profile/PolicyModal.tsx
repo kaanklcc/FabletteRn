@@ -3,7 +3,7 @@
  * POLICY MODAL
  * ═══════════════════════════════════════════════════════════════
  * 
- * Modal for displaying Privacy Policy and Terms of Use
+ * Modal for displaying Privacy Policy and Terms of Use using WebView
  */
 
 import React from 'react';
@@ -13,10 +13,10 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 
 // Config
 import { colors } from '@/config/theme';
@@ -25,16 +25,19 @@ import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
 interface PolicyModalProps {
     visible: boolean;
     title: string;
-    content: string;
+    htmlFile: 'privacy' | 'terms';
     onClose: () => void;
 }
 
 export default function PolicyModal({
     visible,
     title,
-    content,
+    htmlFile,
     onClose,
 }: PolicyModalProps) {
+    // Both privacy and terms use the same HTML file (it has tabs for both)
+    const htmlSource = require('../../../../assets/policies/privacy-policy.html');
+
     return (
         <Modal
             visible={visible}
@@ -51,12 +54,14 @@ export default function PolicyModal({
                         </TouchableOpacity>
                     </View>
 
-                    {/* Content */}
-                    <ScrollView
-                        style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}>
-                        <Text style={styles.content}>{content}</Text>
-                    </ScrollView>
+                    {/* WebView for HTML Content */}
+                    <WebView
+                        source={htmlSource}
+                        style={styles.webview}
+                        originWhitelist={['*']}
+                        scalesPageToFit={true}
+                        startInLoadingState={true}
+                    />
                 </View>
             </SafeAreaView>
         </Modal>
@@ -89,15 +94,8 @@ const styles = StyleSheet.create({
     closeButton: {
         padding: scale(4),
     },
-    scrollView: {
+    webview: {
         flex: 1,
-    },
-    scrollContent: {
-        padding: spacing.md,
-    },
-    content: {
-        fontSize: fontSize.md,
-        color: colors.white,
-        lineHeight: verticalScale(24),
+        backgroundColor: 'transparent',
     },
 });

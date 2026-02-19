@@ -57,6 +57,19 @@ export const colors = {
     textLightAlpha: 'rgba(255, 255, 255, 0.8)',
     whiteAlpha15: 'rgba(255, 255, 255, 0.15)',
     whiteAlpha95: 'rgba(255, 255, 255, 0.95)',
+
+    // Onboarding specific
+    // Kotlin karşılığı: SplashScreen.kt renkleri
+    onboardingGradient: ['#003366', '#004080', '#0055AA'] as const,
+    onboardingIconGradientStart: '#FFAA3D',
+    onboardingIconGradientEnd: '#FFBF67',
+    onboardingGold: '#FFD700',
+    onboardingInfoBox: '#0055AA',
+    onboardingButtonGradientStart: '#FCD34D',
+    onboardingButtonGradientEnd: '#FBBF24',
+    onboardingGlow: 'rgba(255, 107, 107, 0.15)',
+    onboardingImageBg: '#E0DAD2',
+    onboardingPink: '#FF5C8D',
 };
 
 /**
