@@ -36,6 +36,11 @@ import PolicyModal from '../../components/profile/PolicyModal';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
 
+import { useAuthStore } from '@/store/zustand/useAuthStore';
+import { useUserStore } from '@/store/zustand/useUserStore';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../components/common/LanguageSwitcher';
+
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
     ProfileStackParamList,
     'Profile'
@@ -45,20 +50,19 @@ interface Props {
     navigation: ProfileScreenNavigationProp;
 }
 
-// Mock User Data (TODO: Replace with Firebase)
-const MOCK_USER = {
-    name: 'Kaan Kılıç',
-    email: 'kaan@example.com',
-    isPremium: false,
-    avatarUrl: 'https://picsum.photos/200/200?random=1', // Placeholder avatar
-};
-
 export default function ProfileScreen({ navigation }: Props) {
+    // ─────────────────────────────────────────────────────────
+    // FIREBASE DATA
+    // ─────────────────────────────────────────────────────────
+    const { user } = useAuthStore();
+    const { isPremium, userData } = useUserStore();
+    const { t } = useTranslation();
+
+    const userName = userData?.ad || user?.email?.split('@')[0] || t('profile.defaultUser');
+
     // ─────────────────────────────────────────────────────────
     // STATE
     // ─────────────────────────────────────────────────────────
-    const [userName] = useState(MOCK_USER.name);
-    const [isPremium] = useState(MOCK_USER.isPremium);
     const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
     const [showTermsOfUse, setShowTermsOfUse] = useState(false);
 
@@ -71,12 +75,12 @@ export default function ProfileScreen({ navigation }: Props) {
 
     const handleLogout = () => {
         Alert.alert(
-            'Çıkış Yapmak İstiyor Musunuz?',
-            'Çıkış yapmak istediğinize emin misiniz?',
+            t('profile.logoutTitle'),
+            t('profile.logoutMessage'),
             [
-                { text: 'Hayır', style: 'cancel' },
+                { text: t('common.no'), style: 'cancel' },
                 {
-                    text: 'Evet',
+                    text: t('common.yes'),
                     onPress: () => {
                         // TODO: Firebase sign out
                         console.log('Logout');
@@ -88,12 +92,12 @@ export default function ProfileScreen({ navigation }: Props) {
 
     const handleDeleteAccount = () => {
         Alert.alert(
-            'Hesabı Sil',
-            'Bu işlem geri alınamaz. Tüm verileriniz silinecektir.',
+            t('profile.deleteAccountTitle'),
+            t('profile.deleteAccountMessage'),
             [
-                { text: 'İptal', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Sil',
+                    text: t('common.delete'),
                     style: 'destructive',
                     onPress: () => {
                         // TODO: Delete from Firebase + Firestore
@@ -116,7 +120,7 @@ export default function ProfileScreen({ navigation }: Props) {
                     style={styles.backButton}>
                     <Ionicons name="arrow-back" size={scale(24)} color={colors.white} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Profil</Text>
+                <Text style={styles.headerTitle}>{t('profile.title')}</Text>
                 <View style={styles.headerRight} />
             </View>
 
@@ -132,13 +136,13 @@ export default function ProfileScreen({ navigation }: Props) {
                     showsVerticalScrollIndicator={false}>
                     {/* Language Switcher - TODO */}
                     <View style={styles.languageSwitcher}>
-                        <Text style={styles.languageText}>🌐 TR</Text>
+                        <LanguageSwitcher variant="dark" />
                     </View>
 
                     {/* Profile Avatar */}
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: MOCK_USER.avatarUrl }}
+                            source={require('../../../../assets/parskedi.png')}
                             style={styles.avatar}
                             resizeMode="cover"
                         />
@@ -148,7 +152,7 @@ export default function ProfileScreen({ navigation }: Props) {
                     <Text style={styles.userName}>{userName}</Text>
 
                     {/* Premium Status Card */}
-                    <View
+                    <TouchableOpacity
                         style={[
                             styles.premiumCard,
                             {
@@ -156,40 +160,39 @@ export default function ProfileScreen({ navigation }: Props) {
                                     ? 'rgba(252, 211, 77, 0.3)'
                                     : 'rgba(0, 85, 170, 0.3)',
                             },
-                        ]}>
+                        ]}
+                        onPress={handleUpgrade}
+                        activeOpacity={0.8}>
                         <View style={styles.premiumLeft}>
                             <Ionicons
-                                name={isPremium ? 'trophy' : 'star'}
+                                name={isPremium ? 'diamond' : 'star'}
                                 size={scale(32)}
                                 color={isPremium ? '#FCD34D' : colors.white}
                             />
                             <View>
-                                <Text style={styles.premiumLabel}>Hesap Durumu</Text>
+                                <Text style={styles.premiumLabel}>{t('profile.accountStatus')}</Text>
                                 <Text style={styles.premiumStatus}>
-                                    {isPremium ? 'Premium Üye' : 'Ücretsiz Üye'}
+                                    {isPremium ? t('profile.premiumMember') : t('profile.freeMember')}
                                 </Text>
                             </View>
                         </View>
                         {!isPremium && (
-                            <TouchableOpacity
-                                style={styles.upgradeButton}
-                                onPress={handleUpgrade}
-                                activeOpacity={0.8}>
-                                <Text style={styles.upgradeButtonText}>Yükselt</Text>
-                            </TouchableOpacity>
+                            <View style={styles.upgradeButton}>
+                                <Text style={styles.upgradeButtonText}>{t('profile.upgrade')}</Text>
+                            </View>
                         )}
-                    </View>
+                    </TouchableOpacity>
 
                     {/* Menu Items */}
                     <ProfileMenuItem
                         icon="information-circle"
-                        title="Gizlilik Politikası"
+                        title={t('profile.privacyPolicy')}
                         onPress={() => setShowPrivacyPolicy(true)}
                     />
 
                     <ProfileMenuItem
                         icon="information-circle"
-                        title="Kullanım Şartları"
+                        title={t('profile.termsOfUse')}
                         onPress={() => setShowTermsOfUse(true)}
                     />
 
@@ -201,10 +204,9 @@ export default function ProfileScreen({ navigation }: Props) {
                             color="#FCD34D"
                         />
                         <View style={styles.aiDisclosureText}>
-                            <Text style={styles.aiDisclosureTitle}>AI Kullanımı</Text>
+                            <Text style={styles.aiDisclosureTitle}>{t('profile.aiDisclosureTitle')}</Text>
                             <Text style={styles.aiDisclosureMessage}>
-                                Bu uygulama yapay zeka kullanarak hikayeler oluşturur. Tüm
-                                içerikler AI tarafından üretilir.
+                                {t('profile.aiDisclosureMessage')}
                             </Text>
                         </View>
                     </View>
@@ -215,7 +217,7 @@ export default function ProfileScreen({ navigation }: Props) {
                         onPress={handleLogout}
                         activeOpacity={0.8}>
                         <Ionicons name="exit-outline" size={scale(24)} color="#003366" />
-                        <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
+                        <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
                     </TouchableOpacity>
 
                     {/* Delete Account Button */}
@@ -224,7 +226,7 @@ export default function ProfileScreen({ navigation }: Props) {
                         onPress={handleDeleteAccount}
                         activeOpacity={0.8}>
                         <Ionicons name="trash-outline" size={scale(24)} color={colors.white} />
-                        <Text style={styles.deleteButtonText}>Hesabı Sil</Text>
+                        <Text style={styles.deleteButtonText}>{t('profile.deleteAccount')}</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </LinearGradient>
@@ -232,15 +234,15 @@ export default function ProfileScreen({ navigation }: Props) {
             {/* Modals */}
             <PolicyModal
                 visible={showPrivacyPolicy}
-                title="Gizlilik Politikası"
-                content="Bu uygulama kullanıcı verilerini korur ve gizliliğinize saygı duyar. Verileriniz üçüncü taraflarla paylaşılmaz."
+                title={t('profile.privacyPolicy')}
+                htmlFile="privacy"
                 onClose={() => setShowPrivacyPolicy(false)}
             />
 
             <PolicyModal
                 visible={showTermsOfUse}
-                title="Kullanım Şartları"
-                content="Bu uygulamayı kullanarak kullanım şartlarını kabul etmiş olursunuz. Lütfen sorumlu bir şekilde kullanın."
+                title={t('profile.termsOfUse')}
+                htmlFile="terms"
                 onClose={() => setShowTermsOfUse(false)}
             />
         </SafeAreaView>

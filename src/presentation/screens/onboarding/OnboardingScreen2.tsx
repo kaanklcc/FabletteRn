@@ -32,6 +32,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing, isSmallDevice } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─────────────────────────────────────────────────────────
 // TYPES
@@ -55,9 +57,15 @@ export default function OnboardingScreen2({ navigation }: Props) {
      * Navigation Handler
      * Kotlin karşılığı: navController.navigate("girisSayfa")
      */
-    const handleNext = () => {
-        navigation.navigate('Login');
+    const handleNext = async () => {
+        await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+        navigation.getParent()?.reset({
+            index: 0,
+            routes: [{ name: 'Main' as never }],
+        });
     };
+
+    const { t } = useTranslation();
 
     // Responsive icon circle size
     const iconCircleSize = isSmallDevice ? scale(80) : scale(90);
@@ -107,11 +115,11 @@ export default function OnboardingScreen2({ navigation }: Props) {
                         <View style={styles.titleRow}>
                             <Text style={styles.sparkle}>✨</Text>
                             <Text style={styles.safeText}>
-                                Safe & Trusted
+                                {t('onboarding.screen2.safe')}
                             </Text>
                             <Text style={styles.sparkle}>✨</Text>
                         </View>
-                        <Text style={styles.forParentsText}>For Parents</Text>
+                        <Text style={styles.forParentsText}>{t('onboarding.screen2.forParents')}</Text>
                     </View>
 
                     {/* ═══════════════════════════════════════════
@@ -139,11 +147,11 @@ export default function OnboardingScreen2({ navigation }: Props) {
                         <View style={styles.infoTitleRow}>
                             <Text style={styles.infoSparkle}>✨</Text>
                             <Text style={styles.infoTitle}>
-                                Trusted AI for Your Children
+                                {t('onboarding.screen2.infoTitle')}
                             </Text>
                         </View>
                         <Text style={styles.infoDescription}>
-                            Safe, age-appropriate stories created with AI. Monitor your child's creativity and imagination in a secure environment.
+                            {t('onboarding.screen2.infoDesc')}
                         </Text>
                     </View>
 
@@ -162,7 +170,7 @@ export default function OnboardingScreen2({ navigation }: Props) {
                             end={{ x: 1, y: 0 }}
                             style={styles.nextButton}
                         >
-                            <Text style={styles.nextButtonText}>Next</Text>
+                            <Text style={styles.nextButtonText}>{t('common.next')}</Text>
                             <Text style={styles.nextSparkle}>✨</Text>
                         </LinearGradient>
                     </TouchableOpacity>

@@ -36,6 +36,10 @@ import { auth, db } from '@/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuthStore } from '@/store/zustand/useAuthStore';
 import { useUserStore } from '@/store/zustand/useUserStore';
+import { UserRepositoryImpl } from '@/data/repositories/UserRepositoryImpl';
+import { CheckPremiumExpirationUseCase } from '@/domain/usecases/user/CheckPremiumExpirationUseCase';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../components/common/LanguageSwitcher';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
     AuthStackParamList,
@@ -50,6 +54,7 @@ export default function LoginScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     // STATE
     // ─────────────────────────────────────────────────────────
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -95,6 +100,28 @@ export default function LoginScreen({ navigation }: Props) {
                 firestoreData = userDoc.data();
             }
 
+            // ─── Premium süre kontrolü ───
+            // Kotlin AnasayfaViewModel.checkUserAccess() ile aynı mantık
+            let isPremium = firestoreData.premium ?? false;
+            let remainingCredits = firestoreData.remainingChatgptUses ?? 0;
+
+            if (isPremium) {
+                const userRepo = new UserRepositoryImpl();
+                const checkExpiration = new CheckPremiumExpirationUseCase(userRepo);
+                const result = await checkExpiration.invoke(
+                    user.uid,
+                    isPremium,
+                    firestoreData.premiumStartDate?.toDate?.() || null,
+                    firestoreData.premiumDurationDays ?? 0,
+                );
+
+                if (result.wasExpired) {
+                    isPremium = false;
+                    remainingCredits = 0;
+                    console.log('⏰ Premium süresi dolmuş, üyelik kapatıldı');
+                }
+            }
+
             // Auth store'u güncelle (Firestore verilerini dahil et)
             const displayName = user.displayName || firestoreData.ad || '';
             const [firstName = '', ...lastNameParts] = displayName.split(' ');
@@ -108,8 +135,8 @@ export default function LoginScreen({ navigation }: Props) {
                 emailVerified: user.emailVerified,
                 photoURL: user.photoURL || undefined,
                 usedFreeTrial: firestoreData.usedFreeTrial ?? true,
-                isPremium: firestoreData.premium ?? false,
-                remainingCredits: firestoreData.remainingChatgptUses ?? 0,
+                isPremium,
+                remainingCredits,
                 premiumStartDate: firestoreData.premiumStartDate?.toDate?.() || null,
                 premiumDurationDays: firestoreData.premiumDurationDays ?? 0,
             });
@@ -119,10 +146,10 @@ export default function LoginScreen({ navigation }: Props) {
                 ad: firestoreData.ad || firstName,
                 soyad: firestoreData.soyad || lastName,
                 email: user.email || '',
-                premium: firestoreData.premium ?? false,
+                premium: isPremium,
                 premiumStartDate: firestoreData.premiumStartDate?.toDate?.() || null,
                 premiumDurationDays: firestoreData.premiumDurationDays ?? 0,
-                remainingChatgptUses: firestoreData.remainingChatgptUses ?? 0,
+                remainingChatgptUses: remainingCredits,
                 usedFreeTrial: firestoreData.usedFreeTrial ?? true,
             });
 
@@ -134,7 +161,7 @@ export default function LoginScreen({ navigation }: Props) {
         } catch (error: any) {
             console.error('🔴 Login Error:', error.code, error.message);
             const errorMessage = getErrorMessage(error.code);
-            Alert.alert('Giriş Başarısız', `${errorMessage}\n\n(Hata kodu: ${error.code})`);
+            Alert.alert(t('login.loginFailed'), `${errorMessage}\n\n(Hata kodu: ${error.code})`);
         } finally {
             setLoading(false);
         }
@@ -145,8 +172,8 @@ export default function LoginScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     const handleGoogleSignIn = () => {
         Alert.alert(
-            'Google Sign-In',
-            'Google ile giriş Expo Go\'da çalışmaz. Development build gerektirir.\n\nŞimdilik email/şifre ile giriş yapabilirsiniz.',
+            t('login.googleSignInTitle'),
+            t('login.googleSignInMessage'),
         );
     };
 
@@ -156,21 +183,21 @@ export default function LoginScreen({ navigation }: Props) {
     const getErrorMessage = (code: string): string => {
         switch (code) {
             case 'auth/invalid-email':
-                return 'Geçersiz email adresi';
+                return t('login.errors.invalidEmail');
             case 'auth/user-disabled':
-                return 'Bu hesap devre dışı bırakılmış';
+                return t('login.errors.userDisabled');
             case 'auth/user-not-found':
-                return 'Bu email ile kayıtlı kullanıcı bulunamadı';
+                return t('login.errors.userNotFound');
             case 'auth/wrong-password':
-                return 'Hatalı şifre';
+                return t('login.errors.wrongPassword');
             case 'auth/invalid-credential':
-                return 'Geçersiz email veya şifre';
+                return t('login.errors.invalidCredential');
             case 'auth/too-many-requests':
-                return 'Çok fazla hatalı deneme. Lütfen biraz bekleyin.';
+                return t('login.errors.tooManyRequests');
             case 'auth/network-request-failed':
-                return 'İnternet bağlantısı yok';
+                return t('login.errors.networkError');
             default:
-                return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+                return t('login.errors.default');
         }
     };
 
@@ -191,10 +218,7 @@ export default function LoginScreen({ navigation }: Props) {
                     <View style={styles.content}>
                         {/* Dil Seçici (Sağ Üst) */}
                         <View style={styles.languageContainer}>
-                            <TouchableOpacity style={styles.languageButton}>
-                                <Text style={styles.languageIcon}>🌍</Text>
-                                <Text style={styles.languageText}>TR</Text>
-                            </TouchableOpacity>
+                            <LanguageSwitcher variant="light" />
                         </View>
 
                         {/* Ana Kart */}
@@ -208,12 +232,12 @@ export default function LoginScreen({ navigation }: Props) {
 
                             {/* Başlık */}
                             <Text style={styles.title}>Fablette</Text>
-                            <Text style={styles.subtitle}>Harika hikayeler yarat</Text>
+                            <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
 
                             {/* Email Input */}
                             <TextInput
                                 style={styles.input}
-                                placeholder="Email adresi"
+                                placeholder={t('login.emailPlaceholder')}
                                 placeholderTextColor="rgba(0, 85, 170, 0.5)"
                                 value={email}
                                 onChangeText={setEmail}
@@ -226,7 +250,7 @@ export default function LoginScreen({ navigation }: Props) {
                             {/* Password Input */}
                             <TextInput
                                 style={styles.input}
-                                placeholder="Şifre"
+                                placeholder={t('login.passwordPlaceholder')}
                                 placeholderTextColor="rgba(0, 85, 170, 0.5)"
                                 value={password}
                                 onChangeText={setPassword}
@@ -243,14 +267,14 @@ export default function LoginScreen({ navigation }: Props) {
                                 {loading ? (
                                     <ActivityIndicator color="#FFFFFF" />
                                 ) : (
-                                    <Text style={styles.signInButtonText}>Giriş Yap</Text>
+                                    <Text style={styles.signInButtonText}>{t('login.signIn')}</Text>
                                 )}
                             </TouchableOpacity>
 
                             {/* Divider */}
                             <View style={styles.divider}>
                                 <View style={styles.dividerLine} />
-                                <Text style={styles.dividerText}>veya</Text>
+                                <Text style={styles.dividerText}>{t('common.or')}</Text>
                                 <View style={styles.dividerLine} />
                             </View>
 
@@ -260,14 +284,14 @@ export default function LoginScreen({ navigation }: Props) {
                                 onPress={handleGoogleSignIn}
                                 disabled={loading}>
                                 <Text style={styles.googleIcon}>G</Text>
-                                <Text style={styles.signInButtonText}>Google ile Giriş Yap</Text>
+                                <Text style={styles.signInButtonText}>{t('login.googleSignIn')}</Text>
                             </TouchableOpacity>
 
 
                             {/* Alt Mesaj */}
                             <View style={styles.footer}>
                                 <Text style={styles.footerEmoji}>🌟</Text>
-                                <Text style={styles.footerText}>Hayal gücün uçsun</Text>
+                                <Text style={styles.footerText}>{t('login.footer')}</Text>
                                 <Text style={styles.footerEmoji}>🌟</Text>
                             </View>
                         </View>

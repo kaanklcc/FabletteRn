@@ -32,6 +32,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing, isSmallDevice } from '@/utils/responsive';
+import { useTranslation } from 'react-i18next';
 
 // ─────────────────────────────────────────────────────────
 // TYPES
@@ -58,6 +59,8 @@ export default function OnboardingScreen1({ navigation }: Props) {
     const handleNext = () => {
         navigation.navigate('Onboarding2');
     };
+
+    const { t } = useTranslation();
 
     // Responsive icon circle size
     const iconCircleSize = isSmallDevice ? scale(80) : scale(90);
@@ -107,11 +110,11 @@ export default function OnboardingScreen1({ navigation }: Props) {
                         <View style={styles.titleRow}>
                             <Text style={styles.sparkle}>✨</Text>
                             <Text style={styles.welcomeText}>
-                                Welcome, little storyteller!
+                                {t('onboarding.screen1.welcome')}
                             </Text>
                             <Text style={styles.sparkle}>✨</Text>
                         </View>
-                        <Text style={styles.storyMagicText}>Story Magic</Text>
+                        <Text style={styles.storyMagicText}>{t('onboarding.screen1.storyMagic')}</Text>
                     </View>
 
                     {/* ═══════════════════════════════════════════
@@ -139,11 +142,11 @@ export default function OnboardingScreen1({ navigation }: Props) {
                         <View style={styles.infoTitleRow}>
                             <Text style={styles.infoSparkle}>✨</Text>
                             <Text style={styles.infoTitle}>
-                                Create amazing stories with AI magic!
+                                {t('onboarding.screen1.infoTitle')}
                             </Text>
                         </View>
                         <Text style={styles.infoDescription}>
-                            Every tale is unique and specially made just for you. Let your imagination soar!
+                            {t('onboarding.screen1.infoDesc')}
                         </Text>
                     </View>
 
@@ -162,7 +165,7 @@ export default function OnboardingScreen1({ navigation }: Props) {
                             end={{ x: 1, y: 0 }}
                             style={styles.nextButton}
                         >
-                            <Text style={styles.nextButtonText}>Next</Text>
+                            <Text style={styles.nextButtonText}>{t('common.next')}</Text>
                             <Text style={styles.nextSparkle}>✨</Text>
                         </LinearGradient>
                     </TouchableOpacity>
