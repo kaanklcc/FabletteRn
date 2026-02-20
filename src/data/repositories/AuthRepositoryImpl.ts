@@ -1,10 +1,8 @@
 /**
- * ═══════════════════════════════════════════════════════════════
- * AUTH REPOSITORY IMPLEMENTATION
- * ═══════════════════════════════════════════════════════════════
+ * Auth Repository Implementation
  * 
  * IAuthRepository interface'ini implement eder.
- * FirebaseAuthDataSource'u kullanır.
+ * Sadece anonymous auth desteklenir - email/Google kaldırıldı.
  */
 
 import { IAuthRepository } from '../../domain/repositories/IAuthRepository';
@@ -13,27 +11,6 @@ import { FirebaseAuthDataSource } from '../datasources/remote/FirebaseAuthDataSo
 
 export class AuthRepositoryImpl implements IAuthRepository {
     constructor(private authDataSource: FirebaseAuthDataSource) { }
-
-    async signInWithEmail(email: string, password: string): Promise<User> {
-        return await this.authDataSource.signInWithEmail(email, password);
-    }
-
-    async signUpWithEmail(
-        email: string,
-        password: string,
-        displayName?: string
-    ): Promise<User> {
-        return await this.authDataSource.signUpWithEmail(
-            email,
-            password,
-            displayName || ''
-        );
-    }
-
-    async signInWithGoogle(): Promise<User> {
-        // TODO: Google Sign-In implementasyonu
-        throw new Error('Google Sign-In henüz implement edilmedi');
-    }
 
     async logout(): Promise<void> {
         await this.authDataSource.signOut();

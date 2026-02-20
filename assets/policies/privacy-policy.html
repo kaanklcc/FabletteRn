@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,6 +51,7 @@
             gap: 10px;
             margin-bottom: 30px;
             border-bottom: 2px solid #eee;
+            flex-wrap: wrap;
         }
         
         .nav-tab {
@@ -103,13 +104,20 @@
             margin-bottom: 10px;
             font-size: 1.3em;
         }
+
+        h4 {
+            color: #004488;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
         
         p, li {
             margin-bottom: 10px;
             color: #555;
         }
         
-        ul {
+        ul, ol {
             margin-left: 20px;
             margin-bottom: 15px;
         }
@@ -120,6 +128,45 @@
             padding: 20px;
             margin: 20px 0;
             border-radius: 8px;
+        }
+
+        .platform-box {
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .platform-box.android {
+            border-color: #34A853;
+            background: #f8fff8;
+        }
+
+        .platform-box.ios {
+            border-color: #007AFF;
+            background: #f8f9ff;
+        }
+
+        .platform-label {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .platform-label.android {
+            background: #34A853;
+        }
+
+        .platform-label.ios {
+            background: #007AFF;
+        }
+
+        .platform-label.both {
+            background: #6B4FBB;
         }
         
         .contact-info {
@@ -174,9 +221,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎨 Fablette</h1>
+            <h1>Fablette</h1>
             <p>AI-Powered Children's Story Creator</p>
-            <p style="font-size: 0.9em; margin-top: 10px;">Last Updated: December 1, 2024</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Last Updated: February 20, 2025</p>
         </div>
         
         <div class="nav-tabs">
@@ -185,339 +232,532 @@
             <button class="nav-tab" onclick="showTab('ai')">AI Disclosure</button>
         </div>
         
-        <!-- Privacy Policy Section -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- PRIVACY POLICY SECTION                                -->
+        <!-- ══════════════════════════════════════════════════════ -->
         <div id="privacy" class="content-section active">
             <h2>PRIVACY POLICY</h2>
             
-            <p>Fablette: Çocuklar İçin Yapay Zeka Hikayeleri ("we", "our" or "app") is committed to protecting the privacy of our users. This Privacy Policy explains how personal information is collected, used, and protected when you use the Fablette mobile application.</p>
+            <p>Fablette ("we", "us", "our" or "the app") is committed to protecting the privacy of our users. This Privacy Policy explains how personal information is collected, used, and protected when you use the Fablette mobile application on <strong>Google Play (Android)</strong> and <strong>Apple App Store (iOS)</strong>.</p>
+
+            <p>By downloading or using the app, you agree to the collection and use of information in accordance with this policy.</p>
             
+            <!-- ── 1. INFORMATION WE COLLECT ── -->
             <h3>1. INFORMATION WE COLLECT</h3>
             
-            <h4>1.1 Personal Information</h4>
+            <h4>1.1 Authentication &amp; Account Information</h4>
+            <p>Fablette uses <strong>Firebase Anonymous Authentication</strong>. This means:</p>
             <ul>
-                <li>Name and Surname</li>
-                <li>Email address</li>
-                <li>Google account information (when signing in with Google)</li>
+                <li>We do <strong>not</strong> collect your name, email address, phone number, or any other personal identification information.</li>
+                <li>A unique anonymous identifier (UID) is automatically generated when you first open the app.</li>
+                <li>No sign-up, login form, or social media account is required.</li>
+                <li>Your anonymous UID is used solely to associate your created stories and subscription status with your device session.</li>
             </ul>
             
             <h4>1.2 Usage Information</h4>
             <ul>
-                <li>Created stories</li>
-                <li>App usage statistics</li>
-                <li>Device information (model, operating system)</li>
+                <li>Stories you create (text, images, audio generated by AI)</li>
+                <li>App usage statistics (features used, session duration)</li>
+                <li>Device information (device model, operating system version)</li>
             </ul>
             
-            <h4>1.3 Premium Membership Information</h4>
+            <h4>1.3 Subscription &amp; Purchase Information</h4>
             <ul>
-                <li>Purchase history</li>
-                <li>Subscription status</li>
+                <li>Subscription status (active/expired)</li>
+                <li>Subscription plan type (weekly/monthly)</li>
+                <li>Remaining story credits</li>
             </ul>
-            
-            <h3>2. HOW WE USE YOUR INFORMATION</h3>
-            
-            <p>The information we collect is used for:</p>
-            <ul>
-                <li>Account creation and management</li>
-                <li>Providing story creation and storage services</li>
-                <li>Managing premium membership services</li>
-                <li>Improving app performance</li>
-                <li>Personalizing user experience</li>
-                <li>Providing technical support</li>
-            </ul>
-            
-            <h3>3. DATA STORAGE</h3>
-            
-            <ul>
-                <li>Your data is securely stored on Firebase (Google Cloud) servers</li>
-                <li>Data is protected with encryption technologies</li>
-                <li>When you delete your account, all your data is permanently deleted</li>
-            </ul>
-            
-            <h3>4. INFORMATION SHARING</h3>
-            
-            <p>Your personal information is not shared with third parties except in the following cases:</p>
-            <ul>
-                <li>Legal requirements</li>
-                <li>User's explicit consent</li>
-                <li>Service providers (Firebase, Google Play)</li>
-            </ul>
-            
-            <h3>5. CHILDREN'S PRIVACY</h3>
-            
+
             <div class="highlight-box">
-                <p><strong>Important:</strong> Our app is designed for children. Parental or guardian supervision is recommended. We do not knowingly collect data from children under 13 years of age.</p>
+                <p><strong>Important:</strong> We do <strong>not</strong> collect or store any payment card details, billing addresses, or financial information. All payment processing is handled securely by the respective platform:</p>
+            </div>
+
+            <div class="platform-box android">
+                <span class="platform-label android">Android (Google Play)</span>
+                <p>Payments and subscriptions are processed entirely by <strong>Google Play Billing</strong> via RevenueCat. All payment and billing information is managed by Google according to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</p>
+            </div>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS (App Store)</span>
+                <p>Payments and subscriptions are processed entirely by <strong>Apple In-App Purchase</strong> via RevenueCat. All payment and billing information is managed by Apple according to <a href="https://www.apple.com/legal/privacy/" target="_blank">Apple's Privacy Policy</a>.</p>
             </div>
             
-            <h3>6. SECURITY</h3>
+            <!-- ── 2. HOW WE USE YOUR INFORMATION ── -->
+            <h3>2. HOW WE USE YOUR INFORMATION</h3>
             
-            <p>We use industry-standard security measures to protect your data:</p>
+            <p>The information we collect is used for the following purposes:</p>
             <ul>
-                <li>SSL/TLS encryption</li>
-                <li>Firebase Authentication</li>
-                <li>Secure data storage</li>
+                <li>Providing and maintaining the story creation service</li>
+                <li>Storing your created stories in your personal library</li>
+                <li>Managing subscription and premium membership status</li>
+                <li>Improving app performance and user experience</li>
+                <li>Diagnosing technical issues and providing support</li>
             </ul>
             
-            <h3>7. USER RIGHTS</h3>
+            <!-- ── 3. DATA STORAGE & SECURITY ── -->
+            <h3>3. DATA STORAGE &amp; SECURITY</h3>
             
-            <p>Our users have the following rights:</p>
             <ul>
-                <li>Access to personal data</li>
-                <li>Correction of data</li>
-                <li>Deletion of data</li>
-                <li>Account closure</li>
+                <li>Your data is securely stored on <strong>Firebase (Google Cloud)</strong> servers.</li>
+                <li>All data is encrypted in transit using SSL/TLS encryption.</li>
+                <li>Data is protected at rest with industry-standard encryption.</li>
+                <li>Firebase Authentication secures your anonymous session.</li>
+                <li>When you delete your account or data, all associated data is permanently removed from our servers.</li>
             </ul>
             
-            <h3>8. COOKIES AND TRACKING</h3>
+            <!-- ── 4. THIRD-PARTY SERVICES ── -->
+            <h3>4. THIRD-PARTY SERVICES</h3>
             
-            <p>The app uses Firebase Analytics to improve user experience. These services collect anonymous usage data.</p>
+            <p>We use the following third-party services to operate the app:</p>
+
+            <table style="width:100%; border-collapse: collapse; margin: 15px 0;">
+                <tr style="background: #f5f5f5;">
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Service</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Purpose</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Privacy Policy</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Firebase (Google)</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Authentication, Database, Storage</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="https://firebase.google.com/support/privacy" target="_blank">Link</a></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">OpenAI</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Story text generation, Text-to-Speech</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="https://openai.com/privacy" target="_blank">Link</a></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Google Gemini</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Story generation, Image creation</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="https://policies.google.com/privacy" target="_blank">Link</a></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">RevenueCat</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">Subscription management</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="https://www.revenuecat.com/privacy" target="_blank">Link</a></td>
+                </tr>
+            </table>
+
+            <p>Each third-party service processes data according to their own privacy policies linked above. We encourage you to review them.</p>
             
-            <h3>9. CHANGES</h3>
+            <!-- ── 5. INFORMATION SHARING ── -->
+            <h3>5. INFORMATION SHARING</h3>
             
-            <p>This Privacy Policy may be updated from time to time. Significant changes will be notified within the app.</p>
+            <p>We do <strong>not</strong> sell, trade, or rent your personal information to third parties. Your information may only be shared in the following limited circumstances:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> With the third-party services listed above, solely to operate the app.</li>
+                <li><strong>Legal Requirements:</strong> If required by law, regulation, or legal process.</li>
+                <li><strong>Safety:</strong> To protect the rights, property, or safety of our users.</li>
+            </ul>
+            
+            <!-- ── 6. CHILDREN'S PRIVACY ── -->
+            <h3>6. CHILDREN'S PRIVACY</h3>
+            
+            <div class="highlight-box">
+                <p><strong>Important Notice for Parents and Guardians:</strong></p>
+                <p>Fablette is designed for use by children under parental or guardian supervision. We take children's privacy very seriously.</p>
+            </div>
+
+            <ul>
+                <li>We do <strong>not</strong> require any personal information from children to use the app.</li>
+                <li>The app uses anonymous authentication only &mdash; no name, email, age, or other personally identifiable information is collected from any user, including children.</li>
+                <li>We do <strong>not</strong> knowingly collect personal data from children under 13 (or under the applicable age in your jurisdiction).</li>
+                <li>Story prompts provided by users are sent to AI services for content generation only and are not used to build user profiles.</li>
+                <li>We comply with applicable children's privacy laws including <strong>COPPA</strong> (Children's Online Privacy Protection Act) and relevant provisions of <strong>GDPR</strong>.</li>
+                <li>Parental supervision is strongly recommended when children use the app.</li>
+            </ul>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS (App Store) - Kids Category Compliance</span>
+                <ul>
+                    <li>The app does <strong>not</strong> include third-party advertising.</li>
+                    <li>The app does <strong>not</strong> use third-party analytics that collect personally identifiable information.</li>
+                    <li>The app does <strong>not</strong> include any social features, links to social media, or user-to-user communication.</li>
+                    <li>In-app purchases require parental consent through a <strong>Parental Gate</strong> (math question verification).</li>
+                    <li>No data is shared with third parties for advertising or marketing purposes.</li>
+                    <li>The app does <strong>not</strong> request access to location, contacts, camera, microphone, or photo library.</li>
+                </ul>
+            </div>
+
+            <!-- ── 7. TRACKING & ADVERTISING ── -->
+            <h3>7. TRACKING &amp; ADVERTISING</h3>
+
+            <ul>
+                <li>Fablette does <strong>not</strong> track users across other apps or websites.</li>
+                <li>We do <strong>not</strong> use any advertising SDKs or display ads of any kind.</li>
+                <li>We do <strong>not</strong> collect or use Apple's IDFA (Identifier for Advertisers) or Google's Advertising ID.</li>
+                <li>We do <strong>not</strong> use cookies or similar tracking technologies.</li>
+            </ul>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS - App Tracking Transparency</span>
+                <p>Fablette does <strong>not</strong> request App Tracking Transparency (ATT) permission because we do not engage in any tracking activities. Your privacy nutrition labels on the App Store accurately reflect that we do not collect data used to track you.</p>
+            </div>
+            
+            <!-- ── 8. DATA RETENTION & DELETION ── -->
+            <h3>8. DATA RETENTION &amp; DELETION</h3>
+            
+            <p>We retain your data only for as long as necessary to provide the service:</p>
+            <ul>
+                <li>Story data is retained as long as your account is active.</li>
+                <li>Subscription records are retained for the duration of your subscription.</li>
+                <li>You can delete individual stories at any time from within the app.</li>
+                <li>You can delete your account and all associated data from the Profile screen.</li>
+                <li>Upon account deletion, all data (stories, subscription status, anonymous UID) is permanently removed within 30 days.</li>
+            </ul>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS - Account &amp; Data Deletion</span>
+                <p>In compliance with Apple's requirements, you can delete your account and all associated data directly within the app. Navigate to <strong>Profile &rarr; Delete Account</strong>. This action is irreversible and will permanently remove all your stories and data.</p>
+            </div>
+
+            <div class="platform-box android">
+                <span class="platform-label android">Android - Data Deletion</span>
+                <p>You can delete your account and all associated data directly within the app. Navigate to <strong>Profile &rarr; Delete Account</strong>. You may also contact us at the email below to request data deletion.</p>
+            </div>
+
+            <!-- ── 9. USER RIGHTS ── -->
+            <h3>9. YOUR RIGHTS</h3>
+            
+            <p>Depending on your location, you may have the following rights regarding your data:</p>
+            <ul>
+                <li><strong>Access:</strong> Request information about what data we hold about you.</li>
+                <li><strong>Deletion:</strong> Request deletion of all your data (also available in-app).</li>
+                <li><strong>Portability:</strong> Request a copy of your data in a portable format.</li>
+                <li><strong>Objection:</strong> Object to certain data processing activities.</li>
+                <li><strong>Rectification:</strong> Request correction of inaccurate data.</li>
+            </ul>
+
+            <p>To exercise any of these rights, contact us at <a href="mailto:fabletteai@gmail.com">fabletteai@gmail.com</a>.</p>
+
+            <!-- ── 10. INTERNATIONAL DATA TRANSFERS ── -->
+            <h3>10. INTERNATIONAL DATA TRANSFERS</h3>
+            
+            <p>Your data may be transferred to and processed in countries other than your country of residence, including the United States (where Firebase/Google Cloud servers are located). We ensure appropriate safeguards are in place to protect your data in accordance with applicable data protection laws.</p>
+
+            <!-- ── 11. CHANGES TO THIS POLICY ── -->
+            <h3>11. CHANGES TO THIS PRIVACY POLICY</h3>
+            
+            <p>We may update this Privacy Policy from time to time. When we make significant changes:</p>
+            <ul>
+                <li>The "Last Updated" date at the top will be revised.</li>
+                <li>Significant changes will be communicated through the app.</li>
+                <li>Continued use of the app after changes constitutes acceptance of the updated policy.</li>
+            </ul>
             
             <div class="contact-info">
-                <h3 style="color: #FCD34D; margin-top: 0;">CONTACT</h3>
-                <p>For questions about our privacy policy:</p>
+                <h3 style="color: #FCD34D; margin-top: 0;">CONTACT US</h3>
+                <p>If you have questions about this Privacy Policy or wish to exercise your data rights:</p>
                 <p>Email: <a href="mailto:fabletteai@gmail.com">fabletteai@gmail.com</a></p>
+                <p style="margin-top: 10px; font-size: 0.9em;">We typically respond within 48 hours.</p>
             </div>
         </div>
         
-        <!-- Terms of Use Section -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TERMS OF USE SECTION                                  -->
+        <!-- ══════════════════════════════════════════════════════ -->
         <div id="terms" class="content-section">
             <h2>TERMS OF USE</h2>
             
-            <p>By using the Fablette: Çocuklar İçin Yapay Zeka Hikayeleri mobile application, you agree to the following terms.</p>
+            <p>By downloading, installing, or using the Fablette mobile application, you agree to the following terms. These terms apply to both the <strong>Google Play (Android)</strong> and <strong>Apple App Store (iOS)</strong> versions of the app.</p>
             
+            <!-- ── 1. SERVICE DEFINITION ── -->
             <h3>1. SERVICE DEFINITION</h3>
             
-            <p>Fablette: Çocuklar İçin Yapay Zeka Hikayeleri is an AI-powered children's story creation and listening platform. The app allows users to create, save, and listen to custom stories.</p>
+            <p>Fablette is an AI-powered children's story creation and listening platform. The app allows users to create, save, and listen to personalized stories generated by artificial intelligence.</p>
             
+            <!-- ── 2. USER ACCOUNT ── -->
             <h3>2. USER ACCOUNT</h3>
             
-            <h4>2.1 Account Creation</h4>
             <ul>
-                <li>A valid email address is required to create an account</li>
-                <li>You can sign in with a Google account</li>
-                <li>Users are responsible for the security of their account information</li>
+                <li>The app uses <strong>anonymous authentication</strong>. No registration, email, or personal information is required.</li>
+                <li>An anonymous account is automatically created when you first open the app.</li>
+                <li>Your account and data are tied to your device. If you uninstall the app or clear its data, your anonymous account and stories may be lost.</li>
+                <li>You are responsible for maintaining the security of your device.</li>
             </ul>
             
-            <h4>2.2 Account Security</h4>
-            <ul>
-                <li>Do not share your password with anyone</li>
-                <li>Report suspicious activity immediately</li>
-                <li>You are responsible for all actions taken from your account</li>
-            </ul>
-            
-            <h3>3. PREMIUM MEMBERSHIP</h3>
+            <!-- ── 3. PREMIUM MEMBERSHIP ── -->
+            <h3>3. PREMIUM MEMBERSHIP &amp; SUBSCRIPTIONS</h3>
             
             <h4>3.1 Premium Features</h4>
             <ul>
-                <li>Unlimited story creation (token-based system)</li>
+                <li>Extended story creation credits</li>
                 <li>AI-powered image generation</li>
-                <li>Premium audio quality (GPT-TTS)</li>
+                <li>Premium audio quality (AI Text-to-Speech)</li>
                 <li>Access to all story lengths (Short, Medium, Long)</li>
             </ul>
             
-            <h4>3.2 Payment and Cancellation</h4>
+            <h4>3.2 Subscription Plans</h4>
             <ul>
-                <li>Premium membership is purchased through Google Play Store</li>
-                <li>Cancellations are made through Google Play Store settings</li>
-                <li>Refund policy is subject to Google Play Store terms</li>
+                <li><strong>Weekly Plan:</strong> 7-day subscription with story credits</li>
+                <li><strong>Monthly Plan:</strong> 30-day subscription with story credits</li>
             </ul>
+
+            <h4>3.3 Payment &amp; Cancellation</h4>
+
+            <div class="platform-box android">
+                <span class="platform-label android">Android (Google Play)</span>
+                <ul>
+                    <li>Premium subscriptions are purchased through <strong>Google Play Store</strong>.</li>
+                    <li>Payment is charged to your Google Play account at confirmation of purchase.</li>
+                    <li>Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.</li>
+                    <li>Manage or cancel subscriptions in <strong>Google Play Store &rarr; Subscriptions</strong>.</li>
+                    <li>Refunds are subject to <a href="https://support.google.com/googleplay/answer/2479637" target="_blank">Google Play's refund policy</a>.</li>
+                </ul>
+            </div>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS (App Store)</span>
+                <ul>
+                    <li>Premium subscriptions are purchased through <strong>Apple In-App Purchase</strong>.</li>
+                    <li>Payment is charged to your Apple ID account at confirmation of purchase.</li>
+                    <li>Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.</li>
+                    <li>Your account will be charged for renewal within 24 hours prior to the end of the current period.</li>
+                    <li>Manage or cancel subscriptions in <strong>Settings &rarr; [Your Name] &rarr; Subscriptions</strong>.</li>
+                    <li>Refunds are subject to <a href="https://support.apple.com/en-us/HT204084" target="_blank">Apple's refund policy</a>.</li>
+                    <li>Any unused portion of a free trial period (if offered) will be forfeited when you purchase a subscription.</li>
+                </ul>
+            </div>
+
+            <h4>3.4 Parental Gate</h4>
+            <p>All in-app purchases require passing a <strong>Parental Gate</strong> (a math question). This is designed to prevent unauthorized purchases by children.</p>
             
+            <!-- ── 4. CONTENT USAGE ── -->
             <h3>4. CONTENT USAGE</h3>
             
             <h4>4.1 Created Stories</h4>
             <ul>
-                <li>Stories you create belong to you</li>
-                <li>You can save stories for personal use</li>
-                <li>Commercial use is prohibited</li>
+                <li>Stories you create are for your personal, non-commercial use.</li>
+                <li>You may save stories to your personal library within the app.</li>
+                <li>Commercial use of generated stories is prohibited.</li>
             </ul>
             
             <h4>4.2 Prohibited Content</h4>
             
             <div class="highlight-box">
-                <p><strong>The following content is prohibited:</strong></p>
+                <p><strong>The following content creation attempts are prohibited:</strong></p>
                 <ul>
-                    <li>Violent content</li>
-                    <li>Inappropriate or adult content</li>
-                    <li>Hate speech</li>
-                    <li>Copyright infringement</li>
+                    <li>Violent or graphic content</li>
+                    <li>Inappropriate, sexual, or adult content</li>
+                    <li>Hate speech or discriminatory content</li>
+                    <li>Copyright-infringing content</li>
                     <li>Misleading or harmful content</li>
                 </ul>
             </div>
             
+            <!-- ── 5. AI USAGE ── -->
             <h3>5. ARTIFICIAL INTELLIGENCE USAGE</h3>
             
             <ul>
-                <li>Stories are generated by artificial intelligence (Gemini, GPT)</li>
-                <li>The quality and appropriateness of generated content is not guaranteed</li>
-                <li>Users are responsible for reviewing generated content</li>
+                <li>Stories, images, and audio are generated by artificial intelligence (Google Gemini, OpenAI GPT).</li>
+                <li>AI-generated content is not pre-reviewed by humans.</li>
+                <li>The quality, accuracy, and appropriateness of generated content is not guaranteed.</li>
+                <li>Parents/guardians are responsible for reviewing content generated for children.</li>
             </ul>
             
+            <!-- ── 6. SERVICE LIMITATIONS ── -->
             <h3>6. SERVICE LIMITATIONS</h3>
             
             <ul>
-                <li>Service interruptions may occur</li>
-                <li>Features may be changed without prior notice</li>
-                <li>Accounts may be suspended in case of abuse</li>
+                <li>Service may be temporarily interrupted for maintenance or technical issues.</li>
+                <li>Features may be added, changed, or removed at our discretion.</li>
+                <li>AI model availability depends on third-party service providers (OpenAI, Google).</li>
+                <li>Accounts may be suspended in case of abuse or violation of these terms.</li>
             </ul>
             
+            <!-- ── 7. INTELLECTUAL PROPERTY ── -->
             <h3>7. INTELLECTUAL PROPERTY</h3>
             
             <ul>
-                <li>App design and code belong to Fablette: Çocuklar İçin Yapay Zeka Hikayeleri</li>
-                <li>App logo and brand are protected by copyright</li>
-                <li>Unauthorized copying is prohibited</li>
+                <li>The Fablette app design, code, and brand are protected by copyright.</li>
+                <li>The Fablette name and logo are trademarks of Fablette.</li>
+                <li>Unauthorized reproduction, distribution, or modification of the app is prohibited.</li>
             </ul>
             
-            <h3>8. DISCLAIMER</h3>
+            <!-- ── 8. DISCLAIMER ── -->
+            <h3>8. DISCLAIMER OF WARRANTIES</h3>
             
             <ul>
-                <li>The app is provided "as is"</li>
-                <li>We are not responsible for service interruptions</li>
-                <li>We are not responsible for data loss</li>
-                <li>We are not responsible for third-party services (Firebase, Google)</li>
+                <li>The app is provided <strong>"as is"</strong> without warranties of any kind.</li>
+                <li>We do not guarantee that the service will be uninterrupted or error-free.</li>
+                <li>We are not responsible for any data loss.</li>
+                <li>We are not liable for the actions or content of third-party services.</li>
+                <li>Our total liability shall not exceed the amount paid for subscriptions in the last 12 months.</li>
             </ul>
             
-            <h3>9. ACCOUNT SUSPENSION AND TERMINATION</h3>
+            <!-- ── 9. ACCOUNT TERMINATION ── -->
+            <h3>9. ACCOUNT SUSPENSION &amp; TERMINATION</h3>
             
-            <p>Your account may be suspended or terminated in the following cases:</p>
+            <p>We reserve the right to suspend or terminate access to the app in the following cases:</p>
             <ul>
-                <li>Violation of terms of use</li>
-                <li>Creating prohibited content</li>
-                <li>Abuse</li>
+                <li>Violation of these Terms of Use</li>
+                <li>Attempts to create prohibited content</li>
+                <li>Abuse of the service or its systems</li>
                 <li>Legal requirements</li>
             </ul>
             
-            <h3>10. CHANGES</h3>
+            <!-- ── 10. APPLICABLE LAW ── -->
+            <h3>10. APPLICABLE LAW</h3>
             
-            <p>These Terms of Use may be updated from time to time. Significant changes will be notified within the app.</p>
+            <p>These Terms of Use are governed by the laws of the Republic of Turkey, without regard to conflict of law provisions. Any disputes shall be resolved in the courts of Turkey.</p>
+
+            <!-- ── 11. THIRD-PARTY TERMS ── -->
+            <h3>11. THIRD-PARTY TERMS</h3>
+
+            <p>When using the app, you also agree to the following third-party terms:</p>
+
+            <div class="platform-box android">
+                <span class="platform-label android">Android</span>
+                <p><a href="https://play.google.com/intl/en_us/about/play-terms/" target="_blank">Google Play Terms of Service</a></p>
+            </div>
+
+            <div class="platform-box ios">
+                <span class="platform-label ios">iOS</span>
+                <p><a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank">Apple's Licensed Application End User License Agreement (Standard EULA)</a></p>
+            </div>
+
+            <!-- ── 12. CHANGES ── -->
+            <h3>12. CHANGES TO TERMS</h3>
             
-            <h3>11. APPLICABLE LAW</h3>
-            
-            <p>These terms are subject to the laws of the Republic of Turkey.</p>
+            <p>These Terms of Use may be updated from time to time. Significant changes will be notified within the app. Continued use after changes constitutes acceptance.</p>
             
             <div class="contact-info">
-                <h3 style="color: #FCD34D; margin-top: 0;">CONTACT</h3>
-                <p>For questions about terms of use:</p>
+                <h3 style="color: #FCD34D; margin-top: 0;">CONTACT US</h3>
+                <p>For questions about these Terms of Use:</p>
                 <p>Email: <a href="mailto:fabletteai@gmail.com">fabletteai@gmail.com</a></p>
             </div>
         </div>
         
-        <!-- AI Disclosure Section -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- AI DISCLOSURE SECTION                                 -->
+        <!-- ══════════════════════════════════════════════════════ -->
         <div id="ai" class="content-section">
             <h2>AI-GENERATED CONTENT DISCLOSURE</h2>
             
             <div class="highlight-box">
-                <h3 style="color: #003366; margin-top: 0;">⚠️ Important Information for Parents and Guardians</h3>
+                <h3 style="color: #003366; margin-top: 0;">Important Information for Parents and Guardians</h3>
                 <p>Fablette uses advanced artificial intelligence technology to create unique stories for children. Please read this disclosure carefully.</p>
             </div>
             
+            <!-- ── 1. AI MODELS ── -->
             <h3>1. AI MODELS USED</h3>
             
             <p>Our app uses the following AI models:</p>
             <ul>
-                <li><strong>OpenAI GPT-4:</strong> For story text generation and text-to-speech</li>
-                <li><strong>Google Gemini:</strong> For story generation and image creation</li>
-                <li><strong>DALL-E 3:</strong> For story illustrations (when available)</li>
+                <li><strong>OpenAI GPT-4:</strong> Story text generation and text-to-speech narration</li>
+                <li><strong>Google Gemini 2.0:</strong> Story generation and image creation</li>
             </ul>
             
+            <!-- ── 2. HOW CONTENT IS GENERATED ── -->
             <h3>2. HOW AI CONTENT IS GENERATED</h3>
             
             <p>When you create a story:</p>
             <ol>
-                <li>You provide story parameters (theme, characters, location)</li>
+                <li>You provide story parameters (theme, characters, location, topic)</li>
                 <li>AI generates story text based on your inputs</li>
                 <li>AI creates illustrations matching the story</li>
                 <li>AI converts text to natural-sounding speech</li>
             </ol>
+
+            <p><strong>Data Handling:</strong> Your story prompts are sent to AI services for content generation. These prompts are processed in real-time and are not used to train AI models. No personal information is included in the prompts sent to AI services.</p>
             
+            <!-- ── 3. CONTENT SAFETY ── -->
             <h3>3. CONTENT SAFETY</h3>
             
             <div class="highlight-box">
                 <p><strong>While we implement safety measures, please note:</strong></p>
                 <ul>
-                    <li>AI-generated content is <strong>not pre-reviewed</strong> by humans</li>
-                    <li>Content may occasionally be <strong>unexpected or inappropriate</strong></li>
-                    <li>We use content filters, but they are <strong>not 100% perfect</strong></li>
-                    <li><strong>Parental supervision is strongly recommended</strong></li>
+                    <li>AI-generated content is <strong>not pre-reviewed</strong> by humans.</li>
+                    <li>Content may occasionally be <strong>unexpected or contextually inappropriate</strong>.</li>
+                    <li>We use content filters and child-friendly AI settings, but they are <strong>not perfect</strong>.</li>
+                    <li><strong>Parental supervision is strongly recommended.</strong></li>
                 </ul>
             </div>
             
+            <!-- ── 4. SAFETY MEASURES ── -->
             <h3>4. WHAT WE DO TO ENSURE SAFETY</h3>
             
             <ul>
-                <li>✅ Use child-friendly AI model settings</li>
-                <li>✅ Apply content filtering on all generated text</li>
-                <li>✅ Provide reporting tools for inappropriate content</li>
-                <li>✅ Regularly update safety parameters</li>
-                <li>✅ Monitor user feedback and reports</li>
+                <li>Use child-friendly AI model configurations and system prompts</li>
+                <li>Apply content filtering on all generated text and images</li>
+                <li>Provide tools to report inappropriate content</li>
+                <li>Regularly review and update safety parameters</li>
+                <li>Monitor content generation patterns for safety issues</li>
             </ul>
             
-            <h3>5. PARENTAL GUIDANCE RECOMMENDED</h3>
+            <!-- ── 5. PARENTAL GUIDANCE ── -->
+            <h3>5. PARENTAL GUIDANCE</h3>
             
             <p>We recommend that parents and guardians:</p>
             <ul>
-                <li>📖 Review stories before sharing with children</li>
-                <li>👀 Monitor the content children are creating</li>
-                <li>🗣️ Discuss story themes with children</li>
-                <li>🚫 Report any inappropriate content immediately</li>
-                <li>⚙️ Use parental controls on devices</li>
+                <li>Review stories before sharing with younger children</li>
+                <li>Monitor the content and prompts children are using</li>
+                <li>Discuss story themes and topics with children</li>
+                <li>Report any inappropriate content immediately</li>
+                <li>Use built-in device parental controls</li>
             </ul>
             
+            <!-- ── 6. REPORTING ── -->
             <h3>6. REPORTING INAPPROPRIATE CONTENT</h3>
             
             <p>If you encounter inappropriate content:</p>
             <ol>
-                <li>Do not share the story</li>
+                <li>Do not share the story with others</li>
                 <li>Delete the story from your library</li>
                 <li>Contact us immediately at: <a href="mailto:fabletteai@gmail.com">fabletteai@gmail.com</a></li>
-                <li>Include details about what was inappropriate</li>
+                <li>Include a description of the issue and, if possible, the story details</li>
             </ol>
             
-            <h3>7. DATA USAGE</h3>
+            <!-- ── 7. DATA USAGE IN AI ── -->
+            <h3>7. DATA USAGE IN AI GENERATION</h3>
             
-            <p>When you create stories:</p>
             <ul>
-                <li>Your story prompts are sent to AI services (OpenAI, Google)</li>
-                <li>Generated content is stored on Firebase servers</li>
-                <li>We do not use your stories to train AI models</li>
-                <li>Your data is protected according to our Privacy Policy</li>
+                <li>Story prompts are sent to AI services (OpenAI, Google) for real-time content generation.</li>
+                <li>Generated content (text, images, audio) is stored on Firebase servers in your personal library.</li>
+                <li>We do <strong>not</strong> use your stories or prompts to train AI models.</li>
+                <li>No personally identifiable information is sent to AI services.</li>
+                <li>Your data is protected according to our Privacy Policy.</li>
             </ul>
             
+            <!-- ── 8. LIMITATIONS ── -->
             <h3>8. LIMITATIONS</h3>
             
-            <p>Please understand that:</p>
             <ul>
-                <li>AI cannot replace human creativity and judgment</li>
-                <li>Generated stories may contain factual errors</li>
-                <li>Cultural context may not always be appropriate</li>
-                <li>Language quality may vary</li>
-                <li>Images may not perfectly match story descriptions</li>
+                <li>AI cannot replace human creativity, judgment, or supervision.</li>
+                <li>Generated stories may contain factual inaccuracies.</li>
+                <li>Cultural and contextual appropriateness may vary.</li>
+                <li>Language quality and grammar may not always be perfect.</li>
+                <li>AI-generated images may not perfectly match story descriptions.</li>
+                <li>Content quality depends on the clarity and appropriateness of user inputs.</li>
             </ul>
             
+            <!-- ── 9. YOUR RIGHTS ── -->
             <h3>9. YOUR RIGHTS</h3>
             
-            <p>You have the right to:</p>
             <ul>
-                <li>Delete any generated content</li>
-                <li>Request removal of your data</li>
-                <li>Opt-out of AI features (by not using the app)</li>
-                <li>Contact us with concerns</li>
+                <li>Delete any generated content at any time from within the app.</li>
+                <li>Delete your account and all associated data.</li>
+                <li>Request a copy of your stored data.</li>
+                <li>Contact us with any concerns or questions.</li>
             </ul>
             
             <div class="contact-info">
                 <h3 style="color: #FCD34D; margin-top: 0;">QUESTIONS OR CONCERNS?</h3>
-                <p>We take AI safety seriously. If you have any questions or concerns:</p>
+                <p>We take AI safety and children's privacy seriously. If you have any questions:</p>
                 <p>Email: <a href="mailto:fabletteai@gmail.com">fabletteai@gmail.com</a></p>
-                <p style="margin-top: 10px; font-size: 0.9em;">We typically respond within 24-48 hours.</p>
+                <p style="margin-top: 10px; font-size: 0.9em;">We typically respond within 48 hours.</p>
             </div>
         </div>
         
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- FOOTER                                                -->
+        <!-- ══════════════════════════════════════════════════════ -->
         <div class="footer">
             <p><strong>Fablette</strong> - AI-Powered Children's Story Creator</p>
-            <p>© 2024 Fablette. All rights reserved.</p>
+            <p>&copy; 2024-2025 Fablette. All rights reserved.</p>
+            <p style="margin-top: 5px; font-size: 0.85em; color: #999;">
+                Available on Google Play and Apple App Store
+            </p>
             <p style="margin-top: 10px; font-size: 0.9em;">
                 <a href="mailto:fabletteai@gmail.com" style="color: #003366; text-decoration: none;">Contact Us</a>
             </p>
@@ -526,21 +766,10 @@
     
     <script>
         function showTab(tabName) {
-            // Hide all sections
-            const sections = document.querySelectorAll('.content-section');
-            sections.forEach(section => section.classList.remove('active'));
-            
-            // Remove active class from all tabs
-            const tabs = document.querySelectorAll('.nav-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            
-            // Show selected section
+            document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+            document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
             document.getElementById(tabName).classList.add('active');
-            
-            // Add active class to clicked tab
             event.target.classList.add('active');
-            
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>

@@ -17,30 +17,6 @@ export default {
         premium: 'Premium',
     },
 
-    // ─── Login Screen ────────────────────────────────────────
-    login: {
-        subtitle: 'Harika hikayeler yarat',
-        emailPlaceholder: 'Email adresi',
-        passwordPlaceholder: 'Şifre',
-        signIn: 'Giriş Yap',
-        googleSignIn: 'Google ile Giriş Yap',
-        footer: 'Hayal gücün uçsun',
-        loginFailed: 'Giriş Başarısız',
-        googleSignInTitle: 'Google Sign-In',
-        googleSignInMessage:
-            "Google ile giriş Expo Go'da çalışmaz. Development build gerektirir.\n\nŞimdilik email/şifre ile giriş yapabilirsiniz.",
-        errors: {
-            invalidEmail: 'Geçersiz email adresi',
-            userDisabled: 'Bu hesap devre dışı bırakılmış',
-            userNotFound: 'Bu email ile kayıtlı kullanıcı bulunamadı',
-            wrongPassword: 'Hatalı şifre',
-            invalidCredential: 'Geçersiz email veya şifre',
-            tooManyRequests: 'Çok fazla hatalı deneme. Lütfen biraz bekleyin.',
-            networkError: 'İnternet bağlantısı yok',
-            default: 'Bir hata oluştu. Lütfen tekrar deneyin.',
-        },
-    },
-
     // ─── Profile Screen ──────────────────────────────────────
     profile: {
         title: 'Profil',
@@ -126,6 +102,24 @@ export default {
         emptyTitle: 'Henüz kaydedilmiş hikaye yok',
         emptySubtitle: 'İlk hikayeni oluştur ve buradan tekrar oku!',
         createButton: 'Hikaye Oluştur',
+    },
+
+    // ─── Story Viewer ─────────────────────────────────────────
+    storyViewer: {
+        pageIndicator: 'Sayfa {{current}} / {{total}}',
+        saveButton: 'Hikayeyi Kaydet',
+        savedBadge: '✅ Hikaye kaydedildi',
+        loading: 'Hikaye yükleniyor...',
+        generating: 'Hazırlanıyor...',
+        generatingHint: 'Bu birkaç dakika sürebilir...',
+        errorTitle: 'Hikaye oluşturulamadı',
+        errorTitleNotFound: 'Hikaye bulunamadı',
+        retryButton: 'Tekrar Dene',
+        goBackButton: 'Geri Dön',
+        voiceFree: '🔊 Ücretsiz Ses',
+        voicePremium: '👑 Premium Ses',
+        previous: 'Önceki',
+        next: 'Sonraki',
     },
 
     // ─── Home Screen Components ──────────────────────────────

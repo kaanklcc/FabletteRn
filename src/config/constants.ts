@@ -92,6 +92,38 @@ Pronunciation: Clear and smooth articulation, with a light melodic rhythm to eng
 } as const;
 
 /**
+ * Hikaye Oluşturma Sabitleri
+ * 
+ * DiscoveryBox2 HikayeViewModel.kt'deki sabitler
+ */
+export const STORY_GENERATION = {
+    /** Sayfa ayırıcı (Gemini'nin hikayeyi bölmesi için) */
+    PAGE_DELIMITER: '---SAYFA---',
+
+    /** Uzunluk → Sayfa sayısı eşlemesi */
+    PAGE_COUNT: {
+        short: 2,
+        medium: 3,
+        long: 4,
+    } as Record<string, number>,
+
+    /** Türkçe hikaye kuralları (prompt'a eklenir) */
+    RULES_TR: (pageCount: number) => `
+
+KRİTİK KURALLAR:
+1. Hikayeyi Türkçe yaz.
+2. Hikayeyi TAM OLARAK ${pageCount} bölüme ayır, daha fazla veya daha az olmasın.
+3. Her bölümü '---SAYFA---' ile ayır.
+4. Her bölüm 2-3 paragraf olsun.
+5. Bilinen masal karakterlerinin (Shrek, Sindirella vb.) gerçek görünümlerini koru.
+6. Karakterlerin fiziksel görünümünü tüm sayfalarda tutarlı tut.`,
+
+    /** Görsel prompt şablonu */
+    IMAGE_PROMPT: (mainCharacter: string, location: string, pageContent: string) =>
+        `Professional children's book illustration, vibrant fantasy art. Main character ${mainCharacter} (same appearance throughout) in ${location}. Scene: ${pageContent.substring(0, 100)}. IMPORTANT: NO book pages, NO text overlays, NO page borders, pure scene illustration only. Consistent character design.`,
+} as const;
+
+/**
  * Navigation Route İsimleri
  * 
  * Tip güvenli navigation için kullanılır.
@@ -100,7 +132,8 @@ Pronunciation: Clear and smooth articulation, with a light melodic rhythm to eng
 export const ROUTES = {
     // Auth Stack
     SPLASH: 'Splash',
-    ONBOARDING: 'Onboarding',
+    ONBOARDING_1: 'Onboarding1',
+    ONBOARDING_2: 'Onboarding2',
     LOGIN: 'Login',
     REGISTER: 'Register',
 
