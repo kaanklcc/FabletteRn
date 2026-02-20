@@ -13,7 +13,7 @@
  * - "For Parents" alt başlık (altın rengi)
  * - Ebeveyn/çocuk görseli (rounded corners + navy border)
  * - Güvenlik bilgi kutusu
- * - "Next" butonu → LoginScreen'e yönlendirir
+ * - "Next" butonu → Main ekranına yönlendirir (anonymous auth)
  */
 
 import React from 'react';

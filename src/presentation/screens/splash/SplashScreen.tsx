@@ -34,6 +34,7 @@ import { auth, db } from '@/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { moderateScale, responsiveFontSize, verticalScale } from '@/utils/responsive';
 import { useUserStore } from '@/store/zustand/useUserStore';
+import { useLanguageStore } from '@/store/zustand/useLanguageStore';
 import { UserRepositoryImpl } from '@/data/repositories/UserRepositoryImpl';
 import { CheckPremiumExpirationUseCase } from '@/domain/usecases/user/CheckPremiumExpirationUseCase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -72,6 +73,12 @@ const DEFAULT_USER_DATA = {
 export default function SplashScreen({ navigation }: Props) {
     const setUser = useAuthStore((state) => state.setUser);
     const setUserData = useUserStore((state) => state.setUserData);
+    const syncFromI18n = useLanguageStore((state) => state.syncFromI18n);
+
+    // i18n async init tamamlanınca dil store'unu senkronize et
+    useEffect(() => {
+        syncFromI18n();
+    }, []);
 
     const loadUserAndNavigate = async (firebaseUser: import('firebase/auth').User) => {
         const userRef = doc(db, 'users', firebaseUser.uid);
@@ -84,7 +91,7 @@ export default function SplashScreen({ navigation }: Props) {
             isNewUser = true;
             firestoreData = { ...DEFAULT_USER_DATA };
             await setDoc(userRef, firestoreData);
-            console.log('✅ Yeni anonymous kullanıcı Firestore\'a kaydedildi:', firebaseUser.uid);
+            if (__DEV__) console.log('✅ Yeni anonymous kullanıcı Firestore\'a kaydedildi:', firebaseUser.uid);
         } else {
             firestoreData = userDoc.data();
         }

@@ -177,7 +177,7 @@ export default function PremiumScreen({ navigation }: Props) {
                     });
                 }
 
-                console.log(`✅ Premium aktifleştirildi: ${selectedPackage} (${durationDays} gün, ${credits} hikaye)`);
+                if (__DEV__) console.log(`✅ Premium aktifleştirildi: ${selectedPackage} (${durationDays} gün, ${credits} hikaye)`);
 
                 setIsPurchasing(false);
                 Alert.alert(

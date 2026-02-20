@@ -29,7 +29,7 @@ import { getMockStoryWithImages } from '@/data/mock/mockStoryData';
 // ═══════════════════════════════════════════════════════════════
 // MOCK MODE - Set to true to use mock data instead of API calls
 // ═══════════════════════════════════════════════════════════════
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 // ─────────────────────────────────────────────────────────
 // TYPES
@@ -170,7 +170,7 @@ export function useStoryGeneration() {
         // ═══════════════════════════════════════════════════════════════
         if (USE_MOCK_DATA) {
             try {
-                console.log('🎭 MOCK MODE: Simulating story generation...');
+                if (__DEV__) console.log('🎭 MOCK MODE: Simulating story generation...');
 
                 // Step 1: Generating text (0-20%)
                 updateState({
@@ -253,7 +253,7 @@ export function useStoryGeneration() {
 
                 // Complete - Return mock story
                 const mockStory = getMockStoryWithImages();
-                console.log('✅ MOCK MODE: Story generation complete!');
+                if (__DEV__) console.log('✅ MOCK MODE: Story generation complete!');
 
                 updateState({
                     status: 'complete',
@@ -291,7 +291,7 @@ export function useStoryGeneration() {
             const pageCount = STORY_GENERATION.PAGE_COUNT[params.length] || 2;
             const enhancedPrompt = params.prompt + STORY_GENERATION.RULES_TR(pageCount);
 
-            console.log('📝 Generating story text...');
+            if (__DEV__) console.log('📝 Generating story text...');
             const textResult = await cloudFunctionsService.generateStory(enhancedPrompt);
 
             if (abortRef.current) return;
@@ -300,7 +300,7 @@ export function useStoryGeneration() {
                 throw new Error('Hikaye metni alınamadı');
             }
 
-            console.log('📝 Story text generated, length:', textResult.story.length);
+            if (__DEV__) console.log('📝 Story text generated, length:', textResult.story.length);
 
             // ═══ STEP 2: Sayfaları parse et ═══
             const rawPages = textResult.story
@@ -349,14 +349,14 @@ export function useStoryGeneration() {
             const MAX_IMAGE_RETRIES = 3;
             const DELAY_BETWEEN_IMAGES_MS = 2000;
 
-            console.log(`🎨 Generating ${pages.length} images...`);
+            if (__DEV__) console.log(`🎨 Generating ${pages.length} images...`);
 
             for (let i = 0; i < pages.length; i++) {
                 if (abortRef.current) return;
 
                 // İlk görsel hariç, istekler arası bekleme (rate limit önlemi)
                 if (i > 0) {
-                    console.log(`⏳ Waiting ${DELAY_BETWEEN_IMAGES_MS}ms before next image...`);
+                    if (__DEV__) console.log(`⏳ Waiting ${DELAY_BETWEEN_IMAGES_MS}ms before next image...`);
                     await new Promise(r => setTimeout(r, DELAY_BETWEEN_IMAGES_MS));
                 }
 
@@ -365,7 +365,7 @@ export function useStoryGeneration() {
                 for (let attempt = 1; attempt <= MAX_IMAGE_RETRIES; attempt++) {
                     if (abortRef.current) return;
 
-                    console.log(`🎨 Generating image ${i + 1}/${pages.length} (attempt ${attempt})...`);
+                    if (__DEV__) console.log(`🎨 Generating image ${i + 1}/${pages.length} (attempt ${attempt})...`);
 
                     try {
                         const imageResult = await cloudFunctionsService.generateImage(
@@ -373,13 +373,13 @@ export function useStoryGeneration() {
                         );
 
                         if (imageResult.success && imageResult.imageBase64) {
-                            console.log(`🎨 Image ${i + 1} received (${imageResult.imageBase64.length} chars), uploading to Storage...`);
+                            if (__DEV__) console.log(`🎨 Image ${i + 1} received (${imageResult.imageBase64.length} chars), uploading to Storage...`);
                             const downloadURL = await uploadImageToStorage(
                                 imageResult.imageBase64,
                                 userId
                             );
                             pages[i].imageUrl = downloadURL;
-                            console.log(`✅ Image ${i + 1} uploaded:`, downloadURL.substring(0, 60));
+                            if (__DEV__) console.log(`✅ Image ${i + 1} uploaded:`, downloadURL.substring(0, 60));
                             imageUploaded = true;
                             break;
                         } else {
@@ -392,7 +392,7 @@ export function useStoryGeneration() {
                     // Retry öncesi bekleme (exponential backoff)
                     if (attempt < MAX_IMAGE_RETRIES) {
                         const retryDelay = attempt * 2000;
-                        console.log(`⏳ Retrying in ${retryDelay}ms...`);
+                        if (__DEV__) console.log(`⏳ Retrying in ${retryDelay}ms...`);
                         await new Promise(r => setTimeout(r, retryDelay));
                     }
                 }
@@ -419,12 +419,12 @@ export function useStoryGeneration() {
                 audioProgress: { current: 0, total: pages.length },
             });
 
-            console.log(`🔊 Generating ${pages.length} audio files...`);
+            if (__DEV__) console.log(`🔊 Generating ${pages.length} audio files...`);
 
             for (let i = 0; i < pages.length; i++) {
                 if (abortRef.current) return;
 
-                console.log(`🔊 Generating audio ${i + 1}/${pages.length}...`);
+                if (__DEV__) console.log(`🔊 Generating audio ${i + 1}/${pages.length}...`);
 
                 try {
                     const speechResult = await cloudFunctionsService.generateSpeech(
@@ -442,7 +442,7 @@ export function useStoryGeneration() {
                             { encoding: 'base64' as any }
                         );
                         pages[i].audioUrl = audioFileUri;
-                        console.log(`✅ Audio ${i + 1} saved to:`, audioFileUri);
+                        if (__DEV__) console.log(`✅ Audio ${i + 1} saved to:`, audioFileUri);
                     } else {
                         console.warn(`⚠️ Audio ${i + 1}: no audioBase64 in response`, JSON.stringify(speechResult).substring(0, 200));
                     }
@@ -467,7 +467,7 @@ export function useStoryGeneration() {
 
             try {
                 await cloudFunctionsService.decrementCredit();
-                console.log('✅ Credit decremented');
+                if (__DEV__) console.log('✅ Credit decremented');
             } catch (creditError: any) {
                 console.warn('⚠️ Credit decrement failed:', creditError.message);
             }
@@ -479,10 +479,12 @@ export function useStoryGeneration() {
                 pages: [...pages],
             };
 
-            console.log('✅ Story generation complete!');
-            console.log('📊 Pages:', pages.length);
-            console.log('📊 Images:', pages.filter(p => p.imageUrl).length);
-            console.log('📊 Audio:', pages.filter(p => p.audioUrl).length);
+            if (__DEV__) {
+                console.log('✅ Story generation complete!');
+                console.log('📊 Pages:', pages.length);
+                console.log('📊 Images:', pages.filter(p => p.imageUrl).length);
+                console.log('📊 Audio:', pages.filter(p => p.audioUrl).length);
+            }
 
             updateState({
                 status: 'complete',

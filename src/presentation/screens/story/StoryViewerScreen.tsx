@@ -33,6 +33,7 @@ import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-au
 import { useFeaturedStory } from '@/presentation/hooks/useFeaturedStories';
 import { useStory } from '@/presentation/hooks/useStories';
 import { useStoryGeneration } from '@/store/queries/useStoryGeneration';
+import { useTTS } from '@/presentation/hooks/useTTS';
 
 // Store
 import { useAuthStore } from '@/store/zustand/useAuthStore';
@@ -41,6 +42,9 @@ import { useUserStore } from '@/store/zustand/useUserStore';
 // Config
 import { colors } from '@/config/theme';
 import { scale, verticalScale, fontSize, spacing } from '@/utils/responsive';
+import { useLanguageStore } from '@/store/zustand/useLanguageStore';
+import { getLocalizedTitle, getLocalizedPages } from '@/utils/storyHelpers';
+import { useTranslation } from 'react-i18next';
 
 // Navigation - route params union type
 import { StoryGenerationParams } from '../../navigation/types';
@@ -79,12 +83,18 @@ const LOADING_MESSAGES = [
     { icon: '🔊', text: 'Sesler Duyulmaya Başlanıyor...' },
 ];
 
-const LOADING_IMAGES = ['📖', '🌙', '✨', '🏰', '🐉', '🦄'];
+const LOADING_IMAGES = [
+    require('../../../../assets/sleepy.png'),
+    require('../../../../assets/ay.png'),
+    require('../../../../assets/anne.png'),
+];
 
 export default function StoryViewerScreen({ navigation }: Props) {
     const route = useRoute();
     const params = (route.params || {}) as RouteParams;
     const { storyId, generationParams, source } = params;
+    const { language } = useLanguageStore();
+    const { t } = useTranslation();
 
     // ─── MOD BELİRLEME ──────────────────────────────────
     const isGenerationMode = !!generationParams;
@@ -169,9 +179,10 @@ export default function StoryViewerScreen({ navigation }: Props) {
         isLoading = featuredLoading;
         error = featuredError ? (featuredError as Error).message : null;
         if (featuredStory) {
+            const localizedPages = getLocalizedPages(featuredStory.pages, language);
             story = {
-                title: featuredStory.title,
-                pages: featuredStory.pages.map(p => ({
+                title: getLocalizedTitle(featuredStory, language),
+                pages: localizedPages.map(p => ({
                     pageNumber: p.pageNumber,
                     content: p.content,
                     imageUrl: p.imageUrl || '',
@@ -192,7 +203,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
     const isLastPage = currentPageIndex >= totalPages - 1;
 
     // ─────────────────────────────────────────────────────────
-    // AUDIO (expo-audio)
+    // AUDIO (expo-audio) - Premium audio from URL
     // ─────────────────────────────────────────────────────────
     const audioUrl = currentPage?.audioUrl || null;
     const hasAudio = !!audioUrl;
@@ -206,7 +217,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
     // audioUrl değiştiğinde yeni kaynak yükle
     useEffect(() => {
         if (audioUrl && audioUrl.length > 0) {
-            console.log('🔊 Loading audio:', audioUrl.substring(0, 80));
+            if (__DEV__) console.log('🔊 Loading audio:', audioUrl.substring(0, 80));
             try {
                 player.replace({ uri: audioUrl });
             } catch (err) {
@@ -220,6 +231,8 @@ export default function StoryViewerScreen({ navigation }: Props) {
         if (player) {
             try { player.pause(); } catch (_) { /* ignore */ }
         }
+        // TTS'i de durdur
+        tts.stop();
     }, [currentPageIndex]);
 
     // Ses bitince otomatik sonraki sayfaya geç
@@ -235,6 +248,24 @@ export default function StoryViewerScreen({ navigation }: Props) {
             }
         }
     }, [status.playing, status.currentTime, status.duration]);
+
+    // ─────────────────────────────────────────────────────────
+    // TTS (expo-speech) - Free TTS for saved/featured stories
+    // ─────────────────────────────────────────────────────────
+    const tts = useTTS({
+        language: language === 'tr' ? 'tr-TR' : 'en-US',
+        onComplete: () => {
+            // Auto-advance to next page when TTS finishes
+            if (!isLastPage) {
+                setCurrentPageIndex(prev => prev + 1);
+            }
+        },
+    });
+
+    // Determine which audio system to use
+    const useTTSMode = !hasAudio; // Use TTS if no premium audio URL
+    const isPlaying = useTTSMode ? tts.isSpeaking : status.playing;
+    const isPaused = useTTSMode ? tts.isPaused : false;
 
     // ─────────────────────────────────────────────────────────
     // SAVE STORY
@@ -259,7 +290,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
                     url.startsWith('http')
                 );
 
-            console.log('💾 Saving story with', imageUrls.length, 'images');
+            if (__DEV__) console.log('💾 Saving story with', imageUrls.length, 'images');
 
             await repo.saveStory({
                 userId: user.uid,
@@ -270,10 +301,10 @@ export default function StoryViewerScreen({ navigation }: Props) {
 
             decrementUses();
             setIsSaved(true);
-            Alert.alert('Başarılı', 'Hikaye kaydedildi!');
+            Alert.alert(t('common.ok'), t('storyViewer.savedBadge'));
         } catch (err: any) {
             console.error('Save error:', err);
-            Alert.alert('Hata', err.message || 'Hikaye kaydedilemedi');
+            Alert.alert(t('common.error'), err.message || t('storyViewer.errorTitle'));
         }
     }, [generation.story, user, decrementUses]);
 
@@ -281,32 +312,49 @@ export default function StoryViewerScreen({ navigation }: Props) {
     // HANDLERS
     // ─────────────────────────────────────────────────────────
     const handlePlayPause = () => {
-        if (!audioUrl) return;
+        if (useTTSMode) {
+            // Free TTS mode
+            if (!currentPage?.content) return;
 
-        if (status.playing) {
-            player.pause();
-        } else {
-            if (status.duration > 0 && status.currentTime >= status.duration - 0.5) {
-                player.seekTo(0);
+            if (tts.isSpeaking && !tts.isPaused) {
+                tts.pause();
+            } else if (tts.isPaused) {
+                tts.resume();
+            } else {
+                tts.speak(currentPage.content);
             }
-            player.play();
+        } else {
+            // Premium audio mode
+            if (!audioUrl) return;
+
+            if (status.playing) {
+                player.pause();
+            } else {
+                if (status.duration > 0 && status.currentTime >= status.duration - 0.5) {
+                    player.seekTo(0);
+                }
+                player.play();
+            }
         }
     };
 
     const handlePrevious = () => {
         if (isFirstPage) return;
         try { player.pause(); } catch (_) { /* ignore */ }
+        tts.stop();
         setCurrentPageIndex(prev => prev - 1);
     };
 
     const handleNext = () => {
         if (isLastPage) return;
         try { player.pause(); } catch (_) { /* ignore */ }
+        tts.stop();
         setCurrentPageIndex(prev => prev + 1);
     };
 
     const handleGoBack = () => {
         try { player.pause(); } catch (_) { /* ignore */ }
+        tts.stop();
         if (isGenerationMode) generation.resetGeneration();
         navigation.goBack();
     };
@@ -358,10 +406,10 @@ export default function StoryViewerScreen({ navigation }: Props) {
                         </View>
 
                         <Text style={styles.loadingStepText}>
-                            {generation.currentStep || 'Hazırlanıyor...'}
+                            {generation.currentStep || t('storyViewer.generating')}
                         </Text>
                         <Text style={styles.loadingHint}>
-                            Bu birkaç dakika sürebilir...
+                            {t('storyViewer.generatingHint')}
                         </Text>
                     </View>
                 </LinearGradient>
@@ -379,14 +427,14 @@ export default function StoryViewerScreen({ navigation }: Props) {
                     <View style={styles.centerContainer}>
                         <Text style={styles.errorEmoji}>😕</Text>
                         <Text style={styles.statusText}>
-                            {isGenerationMode ? 'Hikaye oluşturulamadı' : 'Hikaye bulunamadı'}
+                            {isGenerationMode ? t('storyViewer.errorTitle') : t('storyViewer.errorTitleNotFound')}
                         </Text>
                         <Text style={styles.debugText}>
                             {error || generation.error}
                         </Text>
                         <View style={styles.errorButtonRow}>
                             <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack}>
-                                <Text style={styles.goBackButtonText}>Geri Dön</Text>
+                                <Text style={styles.goBackButtonText}>{t('storyViewer.goBackButton')}</Text>
                             </TouchableOpacity>
                             {isGenerationMode && (
                                 <TouchableOpacity
@@ -395,7 +443,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
                                         generation.resetGeneration();
                                         generation.startGeneration(generationParams!);
                                     }}>
-                                    <Text style={styles.goBackButtonText}>Tekrar Dene</Text>
+                                    <Text style={styles.goBackButtonText}>{t('storyViewer.retryButton')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -414,7 +462,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
                 <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
                     <View style={styles.centerContainer}>
                         <ActivityIndicator size="large" color={colors.accent} />
-                        <Text style={styles.statusText}>Hikaye yükleniyor...</Text>
+                        <Text style={styles.statusText}>{t('storyViewer.loading')}</Text>
                     </View>
                 </LinearGradient>
             </SafeAreaView>
@@ -430,9 +478,9 @@ export default function StoryViewerScreen({ navigation }: Props) {
                 <LinearGradient colors={['#003366', '#004080', '#0055AA']} style={styles.gradient}>
                     <View style={styles.centerContainer}>
                         <Text style={styles.errorEmoji}>😕</Text>
-                        <Text style={styles.statusText}>Hikaye bulunamadı</Text>
+                        <Text style={styles.statusText}>{t('storyViewer.errorTitleNotFound')}</Text>
                         <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack}>
-                            <Text style={styles.goBackButtonText}>Geri Dön</Text>
+                            <Text style={styles.goBackButtonText}>{t('storyViewer.goBackButton')}</Text>
                         </TouchableOpacity>
                     </View>
                 </LinearGradient>
@@ -464,9 +512,11 @@ export default function StoryViewerScreen({ navigation }: Props) {
                                 resizeMode="cover"
                             />
                         ) : (
-                            <View style={[styles.image, styles.imagePlaceholder]}>
-                                <Text style={styles.imagePlaceholderIcon}>🎨</Text>
-                            </View>
+                            <Image
+                                source={require('../../../../assets/story.jpeg')}
+                                style={styles.image}
+                                resizeMode="cover"
+                            />
                         )}
 
                         <LinearGradient
@@ -488,16 +538,23 @@ export default function StoryViewerScreen({ navigation }: Props) {
                             <Text style={styles.backButtonText}>{'<'}</Text>
                         </TouchableOpacity>
 
-                        {/* Play/Pause Button */}
-                        {hasAudio && (
-                            <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={handlePlayPause}
-                                activeOpacity={0.8}>
-                                <Text style={styles.playButtonText}>
-                                    {status.playing ? '⏸' : '▶'}
+                        {/* Play/Pause Button - Show for ALL stories */}
+                        <TouchableOpacity
+                            style={styles.playButton}
+                            onPress={handlePlayPause}
+                            activeOpacity={0.8}>
+                            <Text style={styles.playButtonText}>
+                                {isPlaying && !isPaused ? '⏸' : '▶'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Voice Mode Indicator */}
+                        {!isGenerationMode && (
+                            <View style={styles.voiceModeIndicator}>
+                                <Text style={styles.voiceModeText}>
+                                    {useTTSMode ? t('storyViewer.voiceFree') : t('storyViewer.voicePremium')}
                                 </Text>
-                            </TouchableOpacity>
+                            </View>
                         )}
                     </View>
 
@@ -506,7 +563,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
 
                     {/* ═══ PAGE INDICATOR ═══ */}
                     <Text style={styles.pageIndicator}>
-                        Sayfa {currentPageIndex + 1} / {totalPages}
+                        {t('storyViewer.pageIndicator', { current: currentPageIndex + 1, total: totalPages })}
                     </Text>
 
                     {/* ═══ PAGE CONTENT ═══ */}
@@ -520,7 +577,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
                             disabled={isFirstPage}
                             activeOpacity={0.8}>
                             <Text style={[styles.navButtonText, isFirstPage && styles.navButtonTextDisabled]}>
-                                Önceki
+                                {t('storyViewer.previous')}
                             </Text>
                         </TouchableOpacity>
 
@@ -530,7 +587,7 @@ export default function StoryViewerScreen({ navigation }: Props) {
                             disabled={isLastPage}
                             activeOpacity={0.8}>
                             <Text style={[styles.navButtonText, isLastPage && styles.navButtonTextDisabled]}>
-                                Sonraki
+                                {t('storyViewer.next')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -555,13 +612,13 @@ export default function StoryViewerScreen({ navigation }: Props) {
                             onPress={handleSaveStory}
                             activeOpacity={0.8}>
                             <Text style={styles.saveButtonIcon}>💾</Text>
-                            <Text style={styles.saveButtonText}>Hikayeyi Kaydet</Text>
+                            <Text style={styles.saveButtonText}>{t('storyViewer.saveButton')}</Text>
                         </TouchableOpacity>
                     )}
 
                     {isSaved && (
                         <View style={styles.savedBadge}>
-                            <Text style={styles.savedBadgeText}>✅ Hikaye kaydedildi</Text>
+                            <Text style={styles.savedBadgeText}>{t('storyViewer.savedBadge')}</Text>
                         </View>
                     )}
                 </ScrollView>
@@ -601,9 +658,11 @@ function AnimatedLoadingImages() {
     return (
         <View style={styles.loadingImageContainer}>
             <Animated.View style={[styles.loadingImageCircle, { opacity: fadeAnim }]}>
-                <Text style={styles.loadingImageEmoji}>
-                    {LOADING_IMAGES[currentIndex]}
-                </Text>
+                <Image
+                    source={LOADING_IMAGES[currentIndex]}
+                    style={styles.loadingImage}
+                    resizeMode="contain"
+                />
             </Animated.View>
         </View>
     );
@@ -772,6 +831,10 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'rgba(252, 211, 77, 0.25)',
     },
+    loadingImage: {
+        width: scale(120),
+        height: scale(120),
+    },
     loadingImageEmoji: {
         fontSize: scale(72),
     },
@@ -905,7 +968,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.sm,
     },
     content: {
-        fontSize: fontSize.lg,
+        fontSize: fontSize.xl,
         color: colors.white,
         lineHeight: verticalScale(32),
         textAlign: 'justify',
@@ -989,6 +1052,22 @@ const styles = StyleSheet.create({
     savedBadgeText: {
         fontSize: fontSize.md,
         color: colors.accent,
+        fontWeight: '600',
+    },
+
+    // ── Voice Mode Indicator ──────────────────
+    voiceModeIndicator: {
+        position: 'absolute',
+        top: verticalScale(16),
+        right: scale(76),
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: scale(12),
+        paddingVertical: verticalScale(6),
+        borderRadius: 16,
+    },
+    voiceModeText: {
+        fontSize: fontSize.xs,
+        color: colors.white,
         fontWeight: '600',
     },
 });

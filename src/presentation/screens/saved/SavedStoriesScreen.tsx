@@ -89,8 +89,9 @@ export default function SavedStoriesScreen({ navigation }: Props) {
     };
 
     const handleCreateStory = () => {
-        // TODO: Navigate to CreateTab
-        console.log('Navigate to CreateTab');
+        (navigation as any).navigate('CreateTab', {
+            screen: 'CreateStory',
+        });
     };
 
     // ─────────────────────────────────────────────────────────
