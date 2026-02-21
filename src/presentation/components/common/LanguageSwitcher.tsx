@@ -20,7 +20,7 @@ interface LanguageSwitcherProps {
 
 const LANGUAGES = [
     { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'en', label: 'English', flag: '🇺🇸' },
 ];
 
 export default function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {

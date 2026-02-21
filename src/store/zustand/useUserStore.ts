@@ -61,6 +61,12 @@ interface UserDataState {
     setUserData: (userData: UserData | null) => void;
 
     /**
+     * Ücretsiz deneme hakkını kullanılmış olarak işaretle
+     * (Local state)
+     */
+    consumeFreeTrial: () => void;
+
+    /**
      * Kullanım hakkını azalt
      * 
      * Her hikaye oluşturulduğunda çağrılır.
@@ -119,6 +125,21 @@ export const useUserStore = create<UserDataState>((set, get) => ({
             isPremium: userData?.premium ?? false,
             remainingUses: userData?.remainingChatgptUses ?? 0,
         }),
+
+    /**
+     * Ücretsiz deneme hakkını kullanıldı olarak işaretle
+     */
+    consumeFreeTrial: () => {
+        const { userData } = get();
+        if (!userData) return;
+
+        set({
+            userData: {
+                ...userData,
+                usedFreeTrial: true,
+            },
+        });
+    },
 
     /**
      * Kullanım hakkını azalt

@@ -24,12 +24,14 @@ import { StoryGenerationParams } from '@/presentation/navigation/types';
 import { StoryPage } from '@/domain/entities/StoryPage';
 import { cloudFunctionsService } from '@/data/datasources/CloudFunctionsService';
 import { STORY_GENERATION, TTS_CONFIG } from '@/config/constants';
-import { getMockStoryWithImages } from '@/data/mock/mockStoryData';
+import { getMockStoryWithImages, getMockFreeTrialStory } from '@/data/mock/mockStoryData';
+import { UserRepositoryImpl } from '@/data/repositories/UserRepositoryImpl';
+import { useUserStore } from '@/store/zustand/useUserStore';
 
 // ═══════════════════════════════════════════════════════════════
 // MOCK MODE - Set to true to use mock data instead of API calls
 // ═══════════════════════════════════════════════════════════════
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true;
 
 // ─────────────────────────────────────────────────────────
 // TYPES
@@ -188,29 +190,31 @@ export function useStoryGeneration() {
                     status: 'generating_images',
                     progress: 20,
                     currentStep: 'Karakterler canlandırılıyor...',
-                    imageProgress: { current: 0, total: 3 },
+                    imageProgress: { current: 0, total: params.isFreeTrial ? 2 : 3 },
                 });
                 await new Promise(r => setTimeout(r, 1000));
                 if (abortRef.current) return;
 
                 updateState({
                     progress: 35,
-                    imageProgress: { current: 1, total: 3 },
+                    imageProgress: { current: 1, total: params.isFreeTrial ? 2 : 3 },
                 });
                 await new Promise(r => setTimeout(r, 1000));
                 if (abortRef.current) return;
 
-                updateState({
-                    progress: 50,
-                    imageProgress: { current: 2, total: 3 },
-                });
-                await new Promise(r => setTimeout(r, 1000));
-                if (abortRef.current) return;
+                if (!params.isFreeTrial) {
+                    updateState({
+                        progress: 50,
+                        imageProgress: { current: 2, total: 3 },
+                    });
+                    await new Promise(r => setTimeout(r, 1000));
+                    if (abortRef.current) return;
+                }
 
                 updateState({
                     progress: 60,
                     currentStep: 'Sesler duyulmaya başlanıyor...',
-                    imageProgress: { current: 3, total: 3 },
+                    imageProgress: { current: params.isFreeTrial ? 2 : 3, total: params.isFreeTrial ? 2 : 3 },
                 });
 
                 // Step 3: Generating audio (60-90%)
@@ -218,28 +222,30 @@ export function useStoryGeneration() {
                     status: 'generating_audio',
                     progress: 65,
                     currentStep: 'Sese dönüştürülüyor...',
-                    audioProgress: { current: 0, total: 3 },
+                    audioProgress: { current: 0, total: params.isFreeTrial ? 2 : 3 },
                 });
                 await new Promise(r => setTimeout(r, 800));
                 if (abortRef.current) return;
 
-                updateState({
-                    progress: 75,
-                    audioProgress: { current: 1, total: 3 },
-                });
-                await new Promise(r => setTimeout(r, 800));
-                if (abortRef.current) return;
+                if (!params.isFreeTrial) {
+                    updateState({
+                        progress: 75,
+                        audioProgress: { current: 1, total: 3 },
+                    });
+                    await new Promise(r => setTimeout(r, 800));
+                    if (abortRef.current) return;
 
-                updateState({
-                    progress: 85,
-                    audioProgress: { current: 2, total: 3 },
-                });
-                await new Promise(r => setTimeout(r, 800));
-                if (abortRef.current) return;
+                    updateState({
+                        progress: 85,
+                        audioProgress: { current: 2, total: 3 },
+                    });
+                    await new Promise(r => setTimeout(r, 800));
+                    if (abortRef.current) return;
+                }
 
                 updateState({
                     progress: 90,
-                    audioProgress: { current: 3, total: 3 },
+                    audioProgress: { current: params.isFreeTrial ? 2 : 3, total: params.isFreeTrial ? 2 : 3 },
                 });
 
                 // Step 4: Finalizing (90-100%)
@@ -248,11 +254,24 @@ export function useStoryGeneration() {
                     progress: 95,
                     currentStep: 'Hikaye tamamlanıyor...',
                 });
+
+                // Ücretsiz deneme hakkı kullanıldıysa anında işaretle (mock'da da tetikliyoruz)
+                if (params.isFreeTrial && userId) {
+                    try {
+                        const repo = new UserRepositoryImpl();
+                        await repo.consumeFreeTrial(userId);
+                        useUserStore.getState().consumeFreeTrial();
+                        if (__DEV__) console.log('✅ MOCK MODE: Free trial marked as used in Firestore and local store');
+                    } catch (err: any) {
+                        console.error('❌ MOCK MODE: Failed to mark free trial as used:', err);
+                    }
+                }
+
                 await new Promise(r => setTimeout(r, 1000));
                 if (abortRef.current) return;
 
                 // Complete - Return mock story
-                const mockStory = getMockStoryWithImages();
+                const mockStory = params.isFreeTrial ? getMockFreeTrialStory() : getMockStoryWithImages();
                 if (__DEV__) console.log('✅ MOCK MODE: Story generation complete!');
 
                 updateState({
@@ -301,6 +320,19 @@ export function useStoryGeneration() {
             }
 
             if (__DEV__) console.log('📝 Story text generated, length:', textResult.story.length);
+
+            // Ücretsiz deneme hakkı kullanıldıysa anında işaretle
+            if (params.isFreeTrial && userId) {
+                try {
+                    const repo = new UserRepositoryImpl();
+                    await repo.consumeFreeTrial(userId);
+                    useUserStore.getState().consumeFreeTrial();
+                    if (__DEV__) console.log('✅ Free trial marked as used in Firestore and local store');
+                } catch (err: any) {
+                    console.error('❌ Failed to mark free trial as used:', err);
+                    // Devam ediyoruz çünkü hikaye metni üretildi.
+                }
+            }
 
             // ═══ STEP 2: Sayfaları parse et ═══
             const rawPages = textResult.story
@@ -354,8 +386,23 @@ export function useStoryGeneration() {
             for (let i = 0; i < pages.length; i++) {
                 if (abortRef.current) return;
 
+                // Ücretsiz deneme mantığı: İlk sayfa (i===0) için görsel oluştur.
+                // 2. ve sonraki sayfalar için görsel oluşturma, örnek görsel için boş geç
+                if (params.isFreeTrial && i > 0) {
+                    if (__DEV__) console.log(`🎨 Skipping image ${i + 1}/${pages.length} for free trial...`);
+                    const imageProgress = 15 + ((i + 1) / pages.length) * 40;
+                    updateState({
+                        progress: imageProgress,
+                        currentStep: i < pages.length - 1
+                            ? 'Karakterler canlandırılıyor...'
+                            : 'Sesler duyulmaya başlanıyor...',
+                        imageProgress: { current: i + 1, total: pages.length },
+                    });
+                    continue;
+                }
+
                 // İlk görsel hariç, istekler arası bekleme (rate limit önlemi)
-                if (i > 0) {
+                if (i > 0 && !params.isFreeTrial) {
                     if (__DEV__) console.log(`⏳ Waiting ${DELAY_BETWEEN_IMAGES_MS}ms before next image...`);
                     await new Promise(r => setTimeout(r, DELAY_BETWEEN_IMAGES_MS));
                 }
@@ -419,43 +466,51 @@ export function useStoryGeneration() {
                 audioProgress: { current: 0, total: pages.length },
             });
 
-            if (__DEV__) console.log(`🔊 Generating ${pages.length} audio files...`);
-
-            for (let i = 0; i < pages.length; i++) {
-                if (abortRef.current) return;
-
-                if (__DEV__) console.log(`🔊 Generating audio ${i + 1}/${pages.length}...`);
-
-                try {
-                    const speechResult = await cloudFunctionsService.generateSpeech(
-                        pages[i].content.substring(0, 4096),
-                        TTS_CONFIG.VOICE,
-                        TTS_CONFIG.MODEL,
-                        TTS_CONFIG.INSTRUCTIONS,
-                    );
-
-                    if (speechResult.success && speechResult.audioBase64) {
-                        const audioFileUri = `${FileSystem.cacheDirectory}story_audio_${Date.now()}_page${i + 1}.mp3`;
-                        await FileSystem.writeAsStringAsync(
-                            audioFileUri,
-                            speechResult.audioBase64,
-                            { encoding: 'base64' as any }
-                        );
-                        pages[i].audioUrl = audioFileUri;
-                        if (__DEV__) console.log(`✅ Audio ${i + 1} saved to:`, audioFileUri);
-                    } else {
-                        console.warn(`⚠️ Audio ${i + 1}: no audioBase64 in response`, JSON.stringify(speechResult).substring(0, 200));
-                    }
-                } catch (audioError: any) {
-                    console.error(`❌ Audio ${i + 1} failed:`, audioError.message || audioError);
-                }
-
-                const audioProgress = 60 + ((i + 1) / pages.length) * 30;
+            if (params.isFreeTrial) {
+                if (__DEV__) console.log('🔊 Skipping audio generation for free trial...');
                 updateState({
-                    progress: audioProgress,
-                    currentStep: 'Sese dönüştürülüyor...',
-                    audioProgress: { current: i + 1, total: pages.length },
+                    progress: 90,
+                    audioProgress: { current: pages.length, total: pages.length },
                 });
+            } else {
+                if (__DEV__) console.log(`🔊 Generating ${pages.length} audio files...`);
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (abortRef.current) return;
+
+                    if (__DEV__) console.log(`🔊 Generating audio ${i + 1}/${pages.length}...`);
+
+                    try {
+                        const speechResult = await cloudFunctionsService.generateSpeech(
+                            pages[i].content.substring(0, 4096),
+                            TTS_CONFIG.VOICE,
+                            TTS_CONFIG.MODEL,
+                            TTS_CONFIG.INSTRUCTIONS,
+                        );
+
+                        if (speechResult.success && speechResult.audioBase64) {
+                            const audioFileUri = `${FileSystem.cacheDirectory}story_audio_${Date.now()}_page${i + 1}.mp3`;
+                            await FileSystem.writeAsStringAsync(
+                                audioFileUri,
+                                speechResult.audioBase64,
+                                { encoding: 'base64' as any }
+                            );
+                            pages[i].audioUrl = audioFileUri;
+                            if (__DEV__) console.log(`✅ Audio ${i + 1} saved to:`, audioFileUri);
+                        } else {
+                            console.warn(`⚠️ Audio ${i + 1}: no audioBase64 in response`, JSON.stringify(speechResult).substring(0, 200));
+                        }
+                    } catch (audioError: any) {
+                        console.error(`❌ Audio ${i + 1} failed:`, audioError.message || audioError);
+                    }
+
+                    const audioProgress = 60 + ((i + 1) / pages.length) * 30;
+                    updateState({
+                        progress: audioProgress,
+                        currentStep: 'Sese dönüştürülüyor...',
+                        audioProgress: { current: i + 1, total: pages.length },
+                    });
+                }
             }
 
             // ═══ STEP 5: Krediyi düşür ═══
@@ -465,11 +520,15 @@ export function useStoryGeneration() {
                 currentStep: 'Hikaye tamamlanıyor...',
             });
 
-            try {
-                await cloudFunctionsService.decrementCredit();
-                if (__DEV__) console.log('✅ Credit decremented');
-            } catch (creditError: any) {
-                console.warn('⚠️ Credit decrement failed:', creditError.message);
+            if (!params.isFreeTrial) {
+                try {
+                    await cloudFunctionsService.decrementCredit();
+                    if (__DEV__) console.log('✅ Credit decremented');
+                } catch (creditError: any) {
+                    console.warn('⚠️ Credit decrement failed:', creditError.message);
+                }
+            } else {
+                if (__DEV__) console.log('✅ Free trial used (credit not decremented)');
             }
 
             // ═══ COMPLETE ═══

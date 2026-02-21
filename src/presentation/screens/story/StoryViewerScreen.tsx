@@ -268,6 +268,26 @@ export default function StoryViewerScreen({ navigation }: Props) {
     const isPaused = useTTSMode ? tts.isPaused : false;
 
     // ─────────────────────────────────────────────────────────
+    // PREMIUM ALERT HELPER
+    // ─────────────────────────────────────────────────────────
+    const showPremiumAlert = useCallback(() => {
+        Alert.alert(
+            'Premium Gerekli',
+            'Sesi dinlemek, orijinal görseli görmek veya hikayeyi kaydetmek için Premium üyelik gereklidir.',
+            [
+                { text: 'Tamam', style: 'cancel' },
+                {
+                    text: 'Premium\'a Git',
+                    onPress: () => (navigation as any).navigate('ProfileTab', {
+                        screen: 'Premium',
+                        params: { source: 'free_trial_alert' }
+                    })
+                }
+            ]
+        );
+    }, [navigation]);
+
+    // ─────────────────────────────────────────────────────────
     // SAVE STORY
     // ─────────────────────────────────────────────────────────
     const { user } = useAuthStore();
@@ -275,6 +295,11 @@ export default function StoryViewerScreen({ navigation }: Props) {
     const [isSaved, setIsSaved] = useState(false);
 
     const handleSaveStory = useCallback(async () => {
+        if (generationParams?.isFreeTrial) {
+            showPremiumAlert();
+            return;
+        }
+
         if (!generation.story || !user) return;
 
         try {
@@ -312,6 +337,11 @@ export default function StoryViewerScreen({ navigation }: Props) {
     // HANDLERS
     // ─────────────────────────────────────────────────────────
     const handlePlayPause = () => {
+        if (generationParams?.isFreeTrial) {
+            showPremiumAlert();
+            return;
+        }
+
         if (useTTSMode) {
             // Free TTS mode
             if (!currentPage?.content) return;
@@ -505,7 +535,15 @@ export default function StoryViewerScreen({ navigation }: Props) {
 
                     {/* ═══ PAGE IMAGE ═══ */}
                     <View style={styles.imageContainer}>
-                        {currentPage?.imageUrl && currentPage.imageUrl.length > 0 ? (
+                        {generationParams?.isFreeTrial && currentPageIndex > 0 ? (
+                            <TouchableOpacity activeOpacity={0.9} onPress={showPremiumAlert} style={{ flex: 1 }}>
+                                <Image
+                                    source={require('../../../../assets/örnek.png')}
+                                    style={styles.image}
+                                    resizeMode="cover"
+                                />
+                            </TouchableOpacity>
+                        ) : currentPage?.imageUrl && currentPage.imageUrl.length > 0 ? (
                             <Image
                                 source={{ uri: currentPage.imageUrl }}
                                 style={styles.image}

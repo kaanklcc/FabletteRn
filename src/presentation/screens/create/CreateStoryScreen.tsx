@@ -83,7 +83,6 @@ export default function CreateStoryScreen({ navigation }: Props) {
     // Premium state from Zustand
     const { isPremium, remainingUses, userData } = useUserStore();
     const { user } = useAuthStore();
-    const usedFreeTrial = userData?.usedFreeTrial ?? true;
     const { t } = useTranslation();
 
     // Build localized names
@@ -93,30 +92,27 @@ export default function CreateStoryScreen({ navigation }: Props) {
     // ─────────────────────────────────────────────────────────
     // HANDLERS
     // ─────────────────────────────────────────────────────────
-    /**
-     * Kullanıcı erişim kontrolü
-     * DiscoveryBox2'deki AnasayfaViewModel.checkUserAccess() mantığı
-     */
-    const checkUserAccess = (): boolean => {
-        // Premium kullanıcılar ve hakkı olanlar geçebilir
-        if (isPremium && remainingUses > 0) {
-            return true;
-        }
-
-        // Premium değilse ama hakkı varsa geçebilir
-        if (!isPremium && remainingUses > 0) {
-            return true;
-        }
-
-        // İlk deneme hakkı
-        if (!usedFreeTrial) {
-            return true;
-        }
-
-        return false;
-    };
-
     const handleGenerateStory = () => {
+        const isFreeTrialAvailable = Boolean(!isPremium && user && userData?.usedFreeTrial === false);
+
+        // Premium değilse ve free trial hakkı yoksa → Premium ekranına yönlendir
+        if (!isPremium && !isFreeTrialAvailable) {
+            (navigation as any).navigate('ProfileTab', {
+                screen: 'Premium',
+                params: { source: 'create_story' },
+            });
+            return;
+        }
+
+        // Premium ama hakkı kalmadıysa → Premium ekranına yönlendir
+        if (isPremium && remainingUses <= 0) {
+            (navigation as any).navigate('ProfileTab', {
+                screen: 'Premium',
+                params: { source: 'create_story_no_credits' },
+            });
+            return;
+        }
+
         // Validation
         if (!topic.trim() || !location.trim() || !mainCharacter.trim()) {
             Alert.alert(t('common.warning'), t('create.validation.fillFields'));
@@ -136,16 +132,6 @@ export default function CreateStoryScreen({ navigation }: Props) {
         // Auth check
         if (!user) {
             Alert.alert(t('common.warning'), t('create.validation.loginRequired'));
-            return;
-        }
-
-        // Premium/credit check — direkt Premium ekranına yönlendir
-        const canCreate = checkUserAccess();
-        if (!canCreate) {
-            (navigation as any).navigate('ProfileTab', {
-                screen: 'Premium',
-                params: { source: 'create_story' },
-            });
             return;
         }
 
@@ -172,26 +158,17 @@ Uzunluk: ${selectedLength}.
             location,
             theme: themeName,
             topic,
+            isFreeTrial: isFreeTrialAvailable,
         };
 
-        console.log('🚀 Starting story generation with params:', generationParams);
+        if (__DEV__) console.log('🚀 Starting story generation with params:', generationParams);
 
         // Navigate to StoryViewer with generation params
         navigation.navigate('StoryViewer', { generationParams });
     };
 
     const handleLengthPress = (lengthId: string) => {
-        // Orta ve Uzun hikayeler premium gerektirir (hakkı yoksa)
-        const isLocked = !isPremium && lengthId !== 'short';
-
-        if (isLocked) {
-            (navigation as any).navigate('ProfileTab', {
-                screen: 'Premium',
-                params: { source: 'create_story_length' },
-            });
-            return;
-        }
-
+        // Uzunluk seçimi herkese açık — üretim sırasında premium kontrolü yapılır
         setSelectedLength(lengthId);
     };
 

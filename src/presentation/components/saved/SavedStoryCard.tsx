@@ -45,25 +45,9 @@ export default function SavedStoryCard({ story, onPress, onDelete }: SavedStoryC
     const swipeableRef = useRef<Swipeable>(null);
 
     const handleDelete = () => {
-        Alert.alert(
-            'Hikayeyi Sil',
-            'Bu hikayeyi silmek istediğinize emin misiniz?',
-            [
-                {
-                    text: 'İptal',
-                    style: 'cancel',
-                    onPress: () => swipeableRef.current?.close(),
-                },
-                {
-                    text: 'Sil',
-                    style: 'destructive',
-                    onPress: () => {
-                        onDelete(story.id);
-                        swipeableRef.current?.close();
-                    },
-                },
-            ]
-        );
+        // Call parent's onDelete which shows the confirmation
+        onDelete(story.id);
+        swipeableRef.current?.close();
     };
 
     const renderRightActions = (
